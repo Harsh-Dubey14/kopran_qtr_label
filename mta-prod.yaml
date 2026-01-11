@@ -1,5 +1,5 @@
 _schema-version: "3.3"
-ID: invoicing-capm-prod
+ID: kopran-qtr-label-prod
 version: 1.0.0
 description: "CAP + React Fullstack App - Production Environment"
 
@@ -36,7 +36,7 @@ modules:
     requires:
       - name: destination-backend
       - name: html5-apps-repo-runtime
-      - name: xsuaa-invoicing-capm-prod
+      - name: xsuaa-kopran-qtr-label-prod
 
   - name: frontend
     type: html5
@@ -79,7 +79,7 @@ modules:
           forwardAuthToken: true
       - name: html5-apps-repo-host
       - name: destination-backend
-      - name: xsuaa-invoicing-capm-prod
+      - name: xsuaa-kopran-qtr-label-prod
       - name: srv-api-inv
         group: destinations
         properties:
@@ -106,14 +106,14 @@ resources:
       service: html5-apps-repo
       service-plan: app-host
 
-  - name: xsuaa-invoicing-capm-prod
+  - name: xsuaa-kopran-qtr-label-prod
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "invoicing-capm-prod-auth"
+        xsappname: "kopran-qtr-label-prod-auth"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
