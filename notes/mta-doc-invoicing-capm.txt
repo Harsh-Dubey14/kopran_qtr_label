@@ -1,0 +1,158 @@
+==========================
+📄 MTA.YAML DOCUMENTATION
+Project: invoicing-capm
+Version: 1.0.0
+Description: CAP + React Fullstack App
+==========================
+
+🧩 Purpose:
+This MTA (Multi-Target Application) deployment file orchestrates the build, deployment, and binding of a full-stack application composed of:
+- Backend (CAP Node.js Service)
+- Frontend (React)
+- Approuter
+- HTML5 App Repository Deployment
+- Connectivity to S/4HANA Cloud via destination
+- Security via XSUAA
+
+--------------------------
+🔧 GLOBAL PARAMETERS
+--------------------------
+
+- _schema-version: "3.3"
+- enable-parallel-deployments: true → Allows parallel module deployment for faster builds.
+
+--------------------------
+📦 MODULES
+--------------------------
+
+1️⃣ MODULE: backend-srv-inv
+-----------------------------
+Type: nodejs
+Path: `backend`
+
+✔ Handles CAPM CDS service logic.
+✔ Uses Node.js buildpack.
+✔ Builds using:
+  - `npm install --omit=dev`
+  - `cds build --production`
+
+🔗 Requires:
+- `destination-backend`: for outbound HTTP calls.
+- `html5-apps-repo-runtime`: in case UI accesses backend.
+- `xsuaa-invoicing-capm-clean`: for XSUAA integration.
+
+Provides: 
+- `srv-api-inv` → exposes `srv-url` used by approuter.
+
+Environment:
+- API_USER / API_PASS → used for backend API auth logic.
+
+2️⃣ MODULE: frontend
+-----------------------------
+Type: html5
+Path: `app/build`
+
+✔ Contains compiled output of the React frontend.
+✔ Build commands:
+  - `npm install`
+  - `npm run build`
+✔ Uploaded to HTML5 App Repository.
+✔ No supported platforms specified (custom frontend).
+
+🔗 Requires:
+- `html5-apps-repo-host`: HTML5 repo for app deployment.
+
+3️⃣ MODULE: frontend-deployer
+-----------------------------
+Type: com.sap.application.content
+Path: `app/frontend-deployer`
+
+✔ Deploys frontend artifacts into HTML5 Apps Repository.
+✔ Points to build output using `build-result: resources`.
+✔ References the `frontend` module’s build artifacts.
+
+4️⃣ MODULE: approuter
+-----------------------------
+Type: nodejs
+Path: `approuter`
+
+✔ Routes users to the React app via `/`, backend APIs via `/rest` or `/odata`.
+✔ Keeps existing routes on update.
+✔ Requires:
+
+  - `html5-apps-repo-runtime`: runtime access to deployed UI5/React apps.
+  - `html5-apps-repo-host`: to serve content from HTML5 repo.
+  - `destination-backend`: for destination config.
+  - `xsuaa-invoicing-capm-clean`: for authentication.
+  - `srv-api-inv`: exposes CAPM backend via destination binding.
+
+✔ Destinations:
+  - Name: `srv-api-inv`
+  - URL: dynamic → `~{srv-url}`
+  - `forwardAuthToken: true` → required to forward JWT tokens securely.
+
+--------------------------
+🔌 RESOURCES
+--------------------------
+
+1️⃣ destination-backend
+-----------------------------
+✔ CF managed service for destinations (lite plan)
+✔ Used to configure destinations to backend (and optionally, S/4HANA).
+
+2️⃣ html5-apps-repo-runtime
+-----------------------------
+✔ Provides runtime access to HTML5 (UI5/React) apps for Approuter.
+
+3️⃣ html5-apps-repo-host
+-----------------------------
+✔ Hosts UI artifacts like React or SAPUI5 in BTP HTML5 App Repository.
+
+4️⃣ s4hana-destination
+-----------------------------
+✔ Destination to S/4HANA Cloud (external system).
+✔ Type: HTTP, ProxyType: Internet, BasicAuthentication
+✔ Used by backend to call APIs (like BillingDocument API).
+
+ℹ️ Config:
+- User/Password are hardcoded for demo/testing.
+- Can be improved using environment variables or secrets manager.
+
+5️⃣ xsuaa-invoicing-capm-clean
+-----------------------------
+✔ Security configuration using XSUAA (Application Plan).
+✔ Authenticates users via OAuth2.
+✔ Used for:
+  - Approuter login
+  - Forwarding tokens to backend
+  - HTML5 app authorization
+
+✔ config-path: `./xs-security.json`
+✔ Custom xsappname and redirect URI configured for subaccount.
+
+--------------------------
+✅ BUILD FLOW
+--------------------------
+
+1. Pre-build steps run `npm install` and `cds build` for backend.
+2. `frontend` module builds React output into `build/`.
+3. `frontend-deployer` packages it and deploys to HTML5 repo.
+4. `approuter` is deployed to route users to the UI and backend APIs.
+5. Destinations and services are bound appropriately.
+
+--------------------------
+📝 NOTES
+--------------------------
+
+- FLP (Fiori Launchpad) Integration:
+  - `manifest.json` under `app/public` should define `sap.app.crossNavigation` to register app tile.
+  - Ensure `xs-app.json` under `app/` routes `/invoicing-capm-reactapp/` correctly.
+  - React frontend gets served through Approuter → FLP Tile → HTML5 Repo.
+
+- Deploy with:
+  mbt build -p cf
+  cf deploy mta_archives/invoicing-capm_1.0.0.mtar
+
+==========================
+End of Documentation
+==========================

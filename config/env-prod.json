@@ -1,0 +1,41 @@
+{
+  "environment": "production",
+  "description": "Production Environment Configuration Dependencies",
+  "mtaFile": "mta-prod.yaml",
+  "securityFile": "xs-security-production.json",
+  "appRouterConfig": "approuter/xs-app-production.json",
+  "deploymentScript": "deploy-prod.sh",
+  "cloudFoundrySpace": "prod-space",
+  "cloudFoundryOrg": "Kopran Ltd_kopran-ltd-subaccount-t506bu9i",
+  "dependencies": {
+    "node": ">=14.0.0",
+    "mbt": ">=1.2.0",
+    "cloudFoundryCli": ">=8.0.0"
+  },
+  "environmentVariables": {
+    "NODE_ENV": "production",
+    "DEBUG": "false"
+  },
+  "credentials": {
+    "API_USER": "mbk@meritpolymers.com",
+    "API_PASS": "Mitesh@2024"
+  },
+  "services": {
+    "destination": "lite",
+    "html5-apps-repo": "app-runtime",
+    "xsuaa": "application"
+  },
+  "resources": {
+    "memory": "512M",
+    "disk": "512M"
+  },
+  "approuter": {
+    "tenantHostPattern": "^(.*)--meritpolymerssubdomain1-prod-approuter.cfapps.eu10-005.hana.ondemand.com"
+  },
+  "xsuaa": {
+    "xsappname": "invoicing-capm-prod-auth",
+    "redirectUris": [
+      "https://indore-composite-p--ltd--prod-approuter.cfapps.eu10-005.hana.ondemand.com/index.html"
+    ]
+  }
+}

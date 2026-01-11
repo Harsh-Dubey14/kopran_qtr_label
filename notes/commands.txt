@@ -1,0 +1,188 @@
+🚀 CAP + React Fullstack Deployment Guide (Without Work Zone)
+🚀 CAP + React Fullstack Deployment Guide (Without Work Zone)
+
+🚀 CAP + React Fullstack Deployment Guide (Without Work Zone)
+
+==============================================================
+
+This guide covers the clean setup, build, and deployment process for a fullstack SAP CAP + React + Approuter project on BTP Cloud Foundry.
+
+------------------------------------------------------
+📦 1. Install All Dependencies (Initial Setup)
+------------------------------------------------------
+
+# Backend (CAPM)
+npm install --prefix backend
+
+# Frontend (React)
+npm install --prefix app
+
+# Approuter
+npm install --prefix approuter
+
+------------------------------------------------------
+⚙️ 2. Build React Frontend
+------------------------------------------------------
+
+cd app
+npm run build
+cd ..
+
+# OR combined single-line:
+npm --prefix app run build
+
+------------------------------------------------------
+🚚 3. Copy React Build to Approuter (Required for Serving via xs-app.json)
+------------------------------------------------------
+
+# Remove old build
+rm -rf approuter/build
+
+# Copy new React build into approuter
+cp -r app/build approuter/build
+
+------------------------------------------------------
+🏗️ 4. Build MTA Archive
+------------------------------------------------------
+
+# Remove old MTA archive if needed
+rm -rf mta_archives
+
+# Build new MTAR (Multi-target Application Archive)
+mbt build -t mta_archives
+
+------------------------------------------------------
+☁️ 5. Deploy to SAP BTP (Cloud Foundry)
+------------------------------------------------------
+
+cf deploy mta_archives/migo-print-dev_1.0.0.mtar -f
+
+------------------------------------------------------
+🔐 6. Login to Cloud Foundry (if not already logged in)
+------------------------------------------------------
+
+cf login 
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s DEV
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s QUALITY
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+
+------------------------------------------------------
+🧪 7. Post-Deployment Useful Commands
+------------------------------------------------------
+
+# View backend logs
+cf logs backend-srv-inv --recent
+
+# Inspect environment variables for a service/module
+cf env backend-srv-inv
+
+# Get service key (e.g., for testing XSUAA binding)
+cf service-key xsuaa-migo-print-dev xsuaa-key
+
+------------------------------------------------------
+🧹 8. Cleanup / Re-deploy Commands (Optional)
+------------------------------------------------------
+
+# Undeploy complete MTA + delete all bound services
+cf undeploy migo-print-dev --delete-services -f
+
+# Delete individual app/module if needed
+cf delete approuter -f
+
+------------------------------------------------------
+🔁 FULL ONE-LINER: Build React, Copy to Approuter, Build MTA, Deploy
+------------------------------------------------------
+
+npm --prefix app run build \
+&& rm -rf approuter/build \
+&& cp -r app/build approuter/build \
+&& rm -rf mta_archives \
+&& mbt build -t mta_archives \
+&& cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f
+
+------------------------------------------------------
+📌 Tips:
+------------------------------------------------------
+
+- Keep `manifest.json` updated under `app/public` for FLP tile support
+- Ensure `xs-app.json` in `approuter/` properly routes `/build`, `/odata`, `/rest`
+- Always clean `mta_archives` before re-building to avoid stale artifacts
+
+======================================================
+End of CAP + React Fullstack Deployment Guide
+======================================================
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s DEV
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s QUALITY
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+
+
+cd app
+npm run build
+rm -rf ../approuter/build
+cp -r build ../approuter/build
+cd ..
+rm -rf mta_archives
+mbt build -t mta_archives
+cf deploy mta_archives/migo-print-dev_1.0.0.mtar -f
+
+//
+# 1. Set environment
+echo "TARGET_ENV=quality" > .env
+
+# 2. Deploy
+bash deploy.sh
+
+
+
+
+cf undeploy invoicing-capm -f --delete-services
+rm -rf mta_archives
+cp xs-security-quality.json xs-security.json
+cp approuter/xs-app-quality.json approuter/xs-app.json
+mbt build -t mta_archives
+cf deploy mta_archives/migo-print-dev_1.0.0.mtar -f
+
+
+# STEPS FOR DEPLOYMENT 29-7-25
+
+NOTES: 
+1. Before Deployment change endpoint URL for dev/qa/prod here: C:\Users\Expound Team\export_invoice_cds_reactjs\backend\utils\constants.js
+2.Change the MTA.yaml file by copy pasting from mta-dev/mta-qa/mta-prod according to which env you're deploying to mta.yaml file.
+3. Copy paste target ENV one of the three from below:
+
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s DEV
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s QUALITY
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+
+4. change # 🛡️ Step 5: Apply quality-specific configurations according to env and then copy paste the below in terminal 
+
+# 🚀 Step 1: Build React App
+cd app
+npm run build
+
+# 🔄 Step 2: Replace Approuter Build
+rm -rf ../approuter/build
+cp -r build ../approuter/build
+cd ..
+
+# ❌ Step 3: Clean previous deployment
+cf undeploy migo-print-dev -f --delete-services
+
+# 🧹 Step 4: Clean archive folder
+# rm -rf mta_archives
+
+# 🛡️ Step 5: Apply quality-specific configurations
+cp xs-security-dev.json xs-security.json
+cp approuter/xs-app-dev.json approuter/xs-app.json
+
+# cp xs-security-quality.json xs-security.json
+# cp approuter/xs-app-quality.json approuter/xs-app.json
+
+# cp xs-security-prod.json xs-security.json
+# cp approuter/xs-app-production.json approuter/xs-app.json
+
+# 🏗️ Step 6: Rebuild MTA
+mbt build -t mta_archives
+
+# ☁️ Step 7: Deploy MTAR
+cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f

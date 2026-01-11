@@ -1,0 +1,14 @@
+{
+  "destinations": [
+    {
+      "name": "srv-api-inv",
+      "url": "http://localhost:4004",
+      "forwardAuthToken": false
+    },
+    {
+      "name": "html5-apps-repo-runtime",
+      "url": "http://localhost:5000",
+      "forwardAuthToken": false
+    }
+  ]
+}

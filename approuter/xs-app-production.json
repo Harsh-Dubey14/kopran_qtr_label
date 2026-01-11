@@ -1,0 +1,29 @@
+{
+  "welcomeFile": "index.html",
+  "authenticationMethod": "none",
+  "routes": [
+    {
+      "source": "^/resources/(.*)$",
+      "target": "$1",
+      "localDir": "resources",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/rest/(.*)$",
+      "target": "/rest/$1",
+      "destination": "srv-api-inv",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/odata/(.*)$",
+      "target": "/odata/$1",
+      "destination": "srv-api-inv",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/(.*)$",
+      "localDir": "build",
+      "authenticationType": "none"
+    }
+  ]
+}

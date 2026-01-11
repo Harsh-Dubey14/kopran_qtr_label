@@ -1,0 +1,32 @@
+{
+  "environment": "development",
+  "description": "Development Environment Configuration Dependencies",
+  "mtaFile": "mta-dev.yaml",
+  "securityFile": "xs-security-dev.json",
+  "appRouterConfig": "approuter/xs-app-dev.json",
+  "deploymentScript": "deploy-dev.sh",
+  "cloudFoundrySpace": "dev-space",
+  "cloudFoundryOrg": "Kopran Ltd_kopran-ltd-subaccount-t506bu9i",
+  "dependencies": {
+    "node": ">=14.0.0",
+    "mbt": ">=1.2.0",
+    "cloudFoundryCli": ">=8.0.0"
+  },
+  "environmentVariables": {
+    "NODE_ENV": "development",
+    "DEBUG": "true"
+  },
+  "credentials": {
+    "API_USER": "dev-user",
+    "API_PASS": "dev-password"
+  },
+  "services": {
+    "destination": "lite",
+    "html5-apps-repo": "app-runtime",
+    "xsuaa": "application"
+  },
+  "resources": {
+    "memory": "512M",
+    "disk": "512M"
+  }
+}

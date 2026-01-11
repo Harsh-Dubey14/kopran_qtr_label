@@ -1,0 +1,21 @@
+{
+  "odata": {
+    "version": "v4"
+  },
+  "build": {
+    "target": "gen"
+  },
+  "requires": {
+    "db": {
+      "kind": "sqlite",
+      "model": ["db"]
+    }
+  },
+  "auth": {
+    "kind": "mocked"
+  },
+  "watch": {
+    "dirs": ["srv", "db", "handlers", "app"],
+    "files": ["*.cds", "*.csv", "*.js"]
+  }
+}

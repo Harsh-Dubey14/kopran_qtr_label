@@ -1,0 +1,235 @@
+Generated: 2025-11-28
+Purpose: Precise, field-by-field origin, transformation and fallback details for the final
+return produced by getMaterialDocumentDetails (handler).
+
+Context / objects
+ - item: single A_MaterialDocumentItem OData record received from API_MATERIAL_DOCUMENT_SRV (variable name: item)
+ - header: headerDetailsMap[`${item.MaterialDocument}-${item.MaterialDocumentYear}`] — header-level data for the MaterialDocument
+ - materialDetailsMap: cache of ProductDescription lookups keyed by `${Material}-${Plant}` or material-only key
+ - supplierDetailsMap: cache of supplier lookups keyed by supplier code
+ - formatDate(dateStr): normalises dates to dd/MM/YYYY; handles Atom "/Date(ms)/" and ISO strings, returns "" if invalid
+
+Field-by-field mapping (detailed)
+
+1) materialDocument
+ - Final field: materialDocument
+ - Source path(s): item.MaterialDocument
+ - Transformation: none, string as-is
+ - Fallback: "" (empty string)
+ - Example: "5000000092"
+
+2) materialDocumentItem
+ - Final field: materialDocumentItem
+ - Source path(s): item.MaterialDocumentItem
+ - Transformation: none
+ - Fallback: ""
+ - Example: "1"
+
+3) materialCode
+ - Final field: materialCode
+ - Source path(s): item.Material
+ - Transformation: none
+ - Fallback: ""
+ - Example: "30000003"
+
+4) materialName
+ - Final field: materialName
+ - Source precedence (first available used):
+    1) item.MaterialDocumentItemText (descriptive text attached to the item)
+    2) materialDetailsMap[`${item.Material}-${item.Plant}`]?.ProductDescription (product master for material+plant)
+    3) materialDetailsMap[item.Material]?.ProductDescription (product master for material-only)
+ - Transformation: ProductDescription used raw; trim if necessary
+ - Fallback: "" (empty)
+ - Note: product master lookups are performed via api_product ProductDescription(Product='<padded 18 char>',Language='EN')
+ - Example: "PHPA Crude"
+
+5) supplierName
+ - Final field: supplierName
+ - Source precedence:
+    1) supplierDetailsMap[item.Supplier]?.SupplierName (from API_BUSINESS_PARTNER A_Supplier)
+    2) item.Supplier (supplier code as fallback)
+ - Transformation: none
+ - Fallback: ""
+ - Example: "Shiv Samarth Enterprise"
+
+6) supplierBatch
+ - Final field: supplierBatch
+ - Source precedence:
+    1) item.BatchBySupplier
+    2) item.YY1_supplier_batch1_MMI (custom field if present)
+ - Transformation: none
+ - Fallback: ""
+ - Example: "21223"
+
+7) icplBatch
+ - Final field: icplBatch
+ - Source path(s): item.Batch
+ - Transformation: none
+ - Fallback: ""
+ - Example: "0000000439"
+
+8) receivedDate
+ - Final field: receivedDate
+ - Source path(s): header?.PostingDate
+ - Transformation: formatDate(header.PostingDate) -> "dd/MM/YYYY"
+ - Fallback: "" if header or PostingDate missing/invalid
+ - Note: header is looked up by `${MaterialDocument}-${MaterialDocumentYear}`
+ - Example: "25/11/2025"
+
+9) mfgDate
+ - Final field: mfgDate
+ - Source path(s): item.ManufactureDate
+ - Transformation: formatDate(item.ManufactureDate) -> "dd/MM/YYYY"
+ - Fallback: "" if missing/invalid
+ - Example: "25/11/2025"
+
+10) expiryDate
+ - Final field: expiryDate
+ - Source path(s): item.ShelfLifeExpirationDate
+ - Transformation: formatDate(item.ShelfLifeExpirationDate)
+ - Fallback: ""
+ - Example: "" (empty)
+
+11) netWeightKgs
+ - Final field: netWeightKgs
+ - Source path(s): item.QuantityInBaseUnit
+ - Transformation: none (value retained as string/number returned by OData)
+ - Fallback: "" (empty string) if missing
+ - Note: API quantities are base-unit volume/quantity; there are no GW/TW/NW numeric fields in MSEG
+ - Example: "400.000"
+
+12) procurementType
+ - Final field: procurementType
+ - Source: not present in A_MaterialDocumentItem JSON
+ - Value returned: "" (empty string)
+
+13) rawMaterial
+ - Final field: rawMaterial
+ - Source path(s): item.Material
+ - Transformation: none
+ - Fallback: ""
+ - Example: "30000003"
+
+14) grn (object)
+ - Final field: grn (object with purchaseOrder and purchaseOrderItem)
+ - Fields:
+    - grn.purchaseOrder  <- item.PurchaseOrder
+    - grn.purchaseOrderItem <- item.PurchaseOrderItem
+ - Transformation: none; label/GRN display logic in PDF concatenates purchaseOrder + "/" + purchaseOrderItem when purchaseOrderItem exists
+ - Fallbacks: each property -> "" if not present
+ - Note: Goods Movement type 101 (stock receipt) is the conceptual source for GRN; mapping relies on PurchaseOrder fields present on item
+ - Example: { purchaseOrder: "1500000023", purchaseOrderItem: "10" }
+
+15) arNo
+ - Final field: arNo
+ - Source path(s): item.MaterialDocument
+ - Transformation: none
+ - Fallback: ""
+ - Example: "5000000092"
+
+16) gwt
+ - Final field: gwt
+ - Source: not present in JSON (no gross weight field in A_MaterialDocumentItem)
+ - Value returned: null (explicit)
+ - Rationale: make absence explicit; change sentinel if required
+
+17) twt
+ - Final field: twt
+ - Source: not present -> null
+
+18) nwt
+ - Final field: nwt
+ - Source: not present -> null
+
+19) forProduct
+ - Final field: forProduct
+ - Source: not present in material document payload
+ - Value returned: "" (empty string)
+
+20) forBatchNo
+ - Final field: forBatchNo
+ - Source precedence:
+    1) item.Batch
+    2) item.icplBatch alias used in PDF code (same as Batch)
+ - Transformation: none
+ - Fallback: ""
+ - Example: "0000000439"
+
+21) operatorName
+ - Final field: operatorName
+ - Source: not stored on MSEG / A_MaterialDocumentItem in standard SAP
+ - Value returned: "" (empty string)
+ - Note: if your system stores operator info in a header custom field, you can populate operatorName from headerDetailsMap[headerKey].<fieldName>
+
+22) issued (object)
+ - Final field: issued (object)
+   - issued.postingDate <- header?.PostingDate -> formatDate(header.PostingDate)
+   - issued.entryDate <- header?.EntryDate -> formatDate(header.EntryDate)
+ - Transformation: formatDate to "dd/MM/YYYY"
+ - Fallback: "" for each when missing/invalid
+ - Note: PDF uses issued.postingDate primarily, appends entryDate if present
+
+Header lookup details (how header is obtained and parsed)
+ - headerKey computed as: `${item.MaterialDocument}-${item.MaterialDocumentYear}`
+ - headerCache (in-memory) keyed by the above
+ - Primary fetch: OData $batch to /API_MATERIAL_DOCUMENT_SRV/$batch with GET paths:
+     /A_MaterialDocumentHeader(MaterialDocument='<doc>',MaterialDocumentYear='<year>')?$format=json
+ - Response handling:
+     * If batch part yields JSON: use parsed .d (or top-level object) as header
+     * If part yields Atom XML string: parseHeaderXML(xmlString) extracts <d:PostingDate>, <d:ManufactureDate>, <d:ShelfLifeExpirationDate>
+ - Fallback: if $batch fails, individual GET for each header is performed and cached
+
+Product lookup details (materialName resolution)
+ - For keys with Plant: request:
+     /sap/opu/odata4/sap/api_product/srvd_a2x/sap/product/0002/ProductDescription(Product='<padded 18 char product>',Language='EN')
+ - Padding: material id padded left to 18 characters when constructing Product key (product.padStart(18,'0'))
+ - Cache key uses `${Material}-${Plant}` preferably, else material-only key
+ - productCache stores API response object; code reads .ProductDescription (if available)
+
+Supplier lookup details
+ - Request path: /sap/opu/odata/sap/API_BUSINESS_PARTNER/A_Supplier('<SupplierCode>')?$format=json&$select=SupplierName
+ - supplierCache stores res.data?.d or object; supplierDetailsMap[supplierCode]?.SupplierName used in mapping
+
+Date formatting utility (formatDate)
+ - Accepts:
+    * Atom format: "/Date(1609459200000)/"
+    * ISO strings: "2025-11-25T00:00:00Z" or "2025-11-25"
+ - Returns: "dd/MM/YYYY" (e.g. "25/11/2025")
+ - Returns "" for invalid / missing inputs
+
+Presentation & PDF notes
+ - server/srv/server.js PDF generator uses the mapped fields above, but also accepts legacy keys (GW, TW, NW, GRN, ARNO) as fallbacks to retain backward compatibility
+ - QR generation uses: item.rawMaterial (or materialCode/materialName) and item.forBatchNo (or supplierBatch/icplBatch) and item.netWeightKgs (or QuantityInBaseUnit)
+
+Example mapped output (from sample item)
+{
+  "materialDocument": "5000000092",
+  "materialDocumentItem": "1",
+  "materialCode": "30000003",
+  "materialName": "PHPA Crude",
+  "supplierName": "Shiv Samarth Enterprise",
+  "supplierBatch": "21223",
+  "icplBatch": "0000000439",
+  "receivedDate": "25/11/2025",
+  "mfgDate": "25/11/2025",
+  "expiryDate": "",
+  "netWeightKgs": "400.000",
+  "procurementType": "",
+  "rawMaterial": "30000003",
+  "grn": { "purchaseOrder": "1500000023", "purchaseOrderItem": "10" },
+  "arNo": "5000000092",
+  "gwt": null,
+  "twt": null,
+  "nwt": null,
+  "forProduct": "",
+  "forBatchNo": "0000000439",
+  "operatorName": "",
+  "issued": { "postingDate": "25/11/2025", "entryDate": "" }
+}
+
+Notes / recommendations
+ - If you need operatorName populated, identify the custom header/user field where operator is recorded and map headerDetailsMap[headerKey].<field> -> operatorName.
+ - If you prefer weights as empty strings or zeros instead of null, change gwt/twt/nwt assignment accordingly in the handler.
+ - If the product master response shape differs (e.g. .d.ProductDescription), adapt the materialName resolution to read the exact path.
+
+End of file.

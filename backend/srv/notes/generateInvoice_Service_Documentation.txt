@@ -1,0 +1,188 @@
+---
+
+# 📄 SAP CAPM Custom Service: `getMaterialDocumentDetails`
+
+## ✅ Overview
+
+This CAPM service aggregates billing document data from SAP S/4HANA Cloud via multiple OData APIs to generate a fully structured **Tax Invoice** or **Export Invoice** JSON.
+
+---
+
+## 🔁 Trigger
+
+```json
+POST /getMaterialDocumentDetails
+{
+  "billingDocumentId": "9000000123"
+}
+```
+
+---
+
+## 📦 What It Does
+
+| Step | Function                                                                |
+| ---- | ----------------------------------------------------------------------- |
+| 1.   | Fetches Billing Header and Items                                        |
+| 2.   | Gathers Pricing Elements (`ZPR0`, `JIIG`, `ZFRE`, `ZINS`, etc.)         |
+| 3.   | Gets Partner (Sold-To, Ship-To, Bill-To) details                        |
+| 4.   | Fetches Customer Tax Data (GSTIN, PAN, Contact Info)                    |
+| 5.   | Infers Document Type (Domestic / Export IGST / Export LUT)              |
+| 6.   | Builds HSN-level Tax Summary                                            |
+| 7.   | Retrieves eInvoice IRN info (Signed QR, IRN, Ack Date, etc.)            |
+| 8.   | Prepares output: `generateTaxInvoiceData` & `generateExportInvoiceData` |
+
+---
+
+## 📥 Input
+
+```json
+{
+  "billingDocumentId": "Your SAP Billing Document ID"
+}
+```
+
+---
+
+## 🧾 Output JSON
+
+```json
+{
+  "type": "TAX INVOICE" | "EXPORT INVOICE - IGST" | "EXPORT INVOICE - LUT",
+  "title": "TAX INVOICE" | "EXPORT INVOICE",
+  "generateTaxInvoiceData": { ... },
+  "generateExportInvoiceData": { ... }
+}
+```
+
+---
+
+## 🔗 API & Field Mapping Reference
+
+| **Module** | **Entity/Field**                           | **API / Source**                                           | **Mapped Field in Output**                           |
+| ---------- | ------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------- |
+| SD         | BillingDocument, BillingDocumentDate       | `/billingdocument/0001/BillingDocument(...)`               | `document.number`, `document.date`                   |
+| SD         | BillingDocumentItemText                    | `to_Item`                                                  | `items[].description`                                |
+| SD         | BillingQuantity, BillingQuantityUnit       | `to_Item`                                                  | `items[].qty`, `baseUnit`                            |
+| SD         | Pricing Condition (`ZPR0`, `JOIG`, `ZINS`) | `/to_PricingElement`                                       | `items[].rate`, `tax.igst`, `freight`, etc.          |
+| FI         | TransactionCurrency                        | `BillingDocument`, `PricingElement`                        | `items[].transactionCurrency`                        |
+| FI         | AbsltStatisticsExchangeRate                | `PricingElement`                                           | `exchangeRate`                                       |
+| MM         | MaterialGroup (as HSN)                     | `BillingDocumentItem`                                      | `items[].hsn`                                        |
+| SD         | CustomerTaxClassification1                 | `BillingDocument`                                          | Determines invoice type                              |
+| FI         | IRN, AckNo, SignedQrCode                   | `RefNum` Custom API                                        | `document.irn`, `einvoiceSignedQr`                   |
+| BP         | Name, Address, GSTIN, PAN                  | `A_BusinessPartner?$expand=...`                            | `buyer`, `consignee`, `seller`                       |
+| BP         | Contact Person Name & Email                | `to_BusinessPartnerContact` & `to_AddressIndependentEmail` | `buyer.contactPerson`, `buyer.email`                 |
+| SD         | PaymentTerms → Description                 | `/z_sd__paymenttermstext_srvdef/PaymentTermsText`          | `transport.termsOfPayment`                           |
+| SD         | IncotermsClassification, ShippingCondition | `BillingDocument`                                          | `shipping.termsOfDelivery`, `shipping.preCarriageBy` |
+| Derived    | HSN Summary                                | Grouped by item HSN                                        | `taxSummary[]`                                       |
+| Derived    | Total Base, Tax, IGST, CGST, etc.          | Pricing logic                                              | `totals.*`                                           |
+| Derived    | Grand Total in Words                       | Number → Words                                             | `totals.amountInWords`                               |
+
+---
+
+## 📊 Totals Calculated
+
+* `totalAmount`: Sum of all base values (`ZPR0`, `ZVAL`)
+* `totalIGST`, `totalCGST`, `totalSGST`: Tax per condition type
+* `totalFreight`: `ZFRE`, `totalInsurance`: `ZINS`
+* `totalFOB`, `totalCIF`, `totalQty`
+* `transactionCurrencyAmount`: Exchange rate adjusted
+* `amountInWords` and `taxAmountInWords`: Spell-out values
+
+---
+
+## ❗ Error Handling
+
+| Code | Scenario                             |
+| ---- | ------------------------------------ |
+| 400  | Missing `billingDocumentId`          |
+| 404  | No billing items returned            |
+| 500  | Any API failure (axios or SAP issue) |
+
+---
+
+## 🛡 Headers Used
+
+* `Authorization: Basic <base64user:pass>`
+* `Cookie: sap-usercontext=sap-client=100`
+* `Accept: application/json`
+
+---
+
+## 🧠 Invoice Type Logic (Auto-detected)
+
+| Condition                   | Detected Type           |
+| --------------------------- | ----------------------- |
+| Domestic + INR + IN         | `TAX INVOICE`           |
+| Export + IGST > 0           | `EXPORT INVOICE - IGST` |
+| Export + IGST = 0 + Non-INR | `EXPORT INVOICE - LUT`  |
+
+---
+
+## 👤 Contact & Ownership
+
+* **Author**: Auto-generated by `getMaterialDocumentDetails` CAPM service
+* **Created on**: `2025-07-16 07:44:45`
+* **Maintainer**: `Abhishek1494`
+
+---
+
+---
+
+# 📄 Field Mapping: `getMaterialDocumentDetails` CAPM Service
+
+This table maps each key field in the `getMaterialDocumentDetails` CAPM handler to its **purpose** and **source location**.
+
+---
+
+---
+
+# 📄 Field Mapping: `getMaterialDocumentDetails` CAPM Service
+
+---
+
+| **Field / Variable**                                  | **Used For**                       | **Source in Handler**                                               | **CDS / API Entity**                                        |
+| ----------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `billingDocumentId`                                   | Trigger input billing document     | `req.data.billingDocumentId`                                        | `BillingDocument` (input param)                             |
+| `headerRes.data` (`bill`)                             | Core billing header data           | `GET /BillingDocument(...)?$expand=_Item(_ItemText),_Partner,_Text` | `api_billingdocument` CDS view (OData V4)                   |
+| `itemRes.data.d.results` (`itemsRaw`)                 | Billing line items                 | `GET /A_BillingDocument('id')/to_Item`                              | `API_BILLING_DOCUMENT_SRV` CDS (OData V2)                   |
+| `ReferenceSDDocument` / `ReferenceSDDocumentItem`     | Delivery linkage                   | `bill._Item[0]?.ReferenceSDDocument`                                | `A_OutbDeliveryItem` (OData V2)                             |
+| `outboundDeliveryText`                                | No. of packages                    | `GET /A_OutbDeliveryItem(...)` → `YY1_NoofPackages_DLI`             | `YY1_NoofPackages_DLI` Custom Field on `A_OutbDeliveryItem` |
+| `billingInstructions`                                 | Remarks / Instructions (long text) | `bill._Text[0]?.LongText`                                           | `_Text` expanded in V4 Billing CDS                          |
+| `CustomerPaymentTerms`                                | Payment Terms Key                  | `bill.CustomerPaymentTerms`                                         | `BillingDocument`                                           |
+| `CustomerPaymentTermsTextValue`                       | Payment Term Description           | `GET z_sd__paymenttermstext_srvdef/PaymentTermsText`                | `z_sd__paymenttermstext_srvdef` (Custom CDS)                |
+| `partnerId`, `shipToId`, `billToId`                   | Customer, Ship-to, Bill-to         | PartnerFunction filtering on `_Partner`                             | `_Partner` association from Billing CDS                     |
+| `partnerRes`, `shipToRes`                             | Business Partner Details           | `API_BUSINESS_PARTNER`                                              | `A_BusinessPartner`                                         |
+| `to_BusinessPartnerTax`, `ExternalID`                 | GSTIN, PAN                         | `A_BusinessPartner?$expand=to_BusinessPartnerTax`                   | `A_BusinessPartnerTax`, `BusinessPartnerExternalID`         |
+| `to_BusinessPartnerAddress` fields                    | City, Region, PostalCode, etc.     | Used for Buyer/Consignee address                                    | `to_BusinessPartnerAddress` from `A_BusinessPartner`        |
+| `pricingURLs`, `pricingResponses`                     | Pricing breakdown per item         | `GET /to_PricingElement` in loop                                    | `to_PricingElement` from `API_BILLING_DOCUMENT_SRV`         |
+| `itemPricing`                                         | Rates, discounts, tax rates        | `itemPricing.filter(...)`                                           | `ConditionType` mapping (ZPR0, JIIG, JICG, etc.)            |
+| `toWords.convert(...)`                                | Amounts in words                   | Converted base + tax + grand total                                  | External Node.js lib (toWords)                              |
+| `irnResponse`                                         | IRN (eInvoice) data                | `GET /zui_invrefnum_srv/RefNum?$filter=Docno eq '...'`              | `zui_invrefnum_srv` (Custom CDS view)                       |
+| `documentTypeDetect`, `documentTitle`                 | Detecting Tax vs Export            | Logic on country + tax + currency                                   | Derived in handler                                          |
+| `taxSummaryMap`                                       | Grouping tax by HSN                | `items.forEach(...)`                                                | Derived in handler                                          |
+| `stateCodeMap`                                        | Mapping Region to GST Code         | Static JS object                                                    | Derived constant                                            |
+| `fetchIncotermsDescription(...)`                      | Fetch Incoterms Desc               | `GET /A_IncotermsClassificationText(...)`                           | SAP Public API `A_IncotermsClassificationText`              |
+| `items[]`                                             | Final item array                   | Quantity × rate + HSN + taxes                                       | Aggregated per item with CDS/logic                          |
+| `generateTaxInvoiceData`, `generateExportInvoiceData` | Final JSON Outputs                 | `return { type, title, generateTaxInvoiceData, ... }`               | Output of handler                                           |
+| `exchangeRate`, `StatisticsCurrency`                  | Totals section currency meta       | `AbsltPriceDetnExchangeRate`, `StatisticsCurrency`                  | From Pricing + Header Billing CDS                           |
+
+---
+
+| **API Endpoint**                                                                                                               | **Entity / Service**                       | **Purpose in Code**                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `/sap/opu/odata4/sap/api_billingdocument/.../BillingDocument(...)`                                                             | **API\_BILLINGDOCUMENT (OData v4)**        | Fetch **billing header** (document, partners, texts, items with `_Item`).       |
+| `/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocument(...)/to_Item`                                                   | **API\_BILLING\_DOCUMENT\_SRV (OData v2)** | Fetch **billing items list** for the billing document.                          |
+| `/sap/opu/odata4/sap/zsb_tax/.../ZCE_TAX_DETAILS?$filter=BusinessPlace eq ...`                                                 | **Custom Service ZSB\_TAX**                | Fetch **GSTIN number of Plant/BusinessPlace**.                                  |
+| `/sap/opu/odata/sap/ZSB_PLANT/Plant(...)`                                                                                      | **Custom Service ZSB\_PLANT**              | Fetch **Plant master details** (address, state, region, etc.) to enrich Seller. |
+| `/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/A_OutbDeliveryItem(...)`                                                  | **API\_OUTBOUND\_DELIVERY\_SRV**           | Fetch **Delivery Item** data → e.g., No. of Packages (YY1\_NoofPackages1\_DLI). |
+| `/sap/opu/odata/sap/API_OUTBOUND_DELIVERY_SRV;v=0002/A_OutbDeliveryHeader(...)/to_DeliveryDocumentPartner`                     | **API\_OUTBOUND\_DELIVERY\_SRV**           | Fetch **Delivery Header Partners** to resolve **Ship-To partner**.              |
+| `/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner(...)`                                                               | **API\_BUSINESS\_PARTNER**                 | Fetch **Buyer/Ship-to/Partner details** → address, GSTIN, PAN, contacts.        |
+| `/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/A_BillingDocumentItem(...)/to_PricingElement`                                     | **API\_BILLING\_DOCUMENT\_SRV**            | Fetch **Pricing Conditions per item** (ZPR0, ZVAL, taxes, discounts, etc.).     |
+| `/sap/opu/odata/sap/API_PRODUCT_SRV/A_Product(...)/to_Plant`                                                                   | **API\_PRODUCT\_SRV**                      | Fetch **Material master data** (ConsumptionTaxCtrlCode = HSN code).             |
+| `/sap/opu/odata4/sap/z_sd_paymenttermstext/.../PaymentTermsText?...`                                                           | **Custom Service Z\_SD\_PAYMENTTERMSTEXT** | Fetch **Payment Terms Text/Description** for CustomerPaymentTerms.              |
+| `/sap/opu/odata4/sap/zui_invrefnum_bind/.../RefNum?$filter=Docno eq ...`                                                       | **Custom Service ZUI\_INVREFNUM**          | Fetch **IRN / e-Invoice reference data** (AckNo, AckDate, SignedQR, etc.).      |
+| `/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner(...)?$expand=to_BusinessPartnerAddress,to_Supplier`                 | **API\_BUSINESS\_PARTNER**                 | Fetch **ZT Partner (Reference Business Partner)** name & address.               |
+| `/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner(...)?$expand=to_AddressIndependentPhone,to_AddressIndependentEmail` | **API\_BUSINESS\_PARTNER**                 | Fetch **Ship-to Contact Person details** (Phone, Email).                        |
+| `/sap/opu/odata/sap/API_BUSINESS_PARTNER/A_BusinessPartner(...)` (sold-to/bill-to)                                             | **API\_BUSINESS\_PARTNER**                 | Fetch **Sold-to/Bill-to Partner details** for Export shipping.                  |
+| `/A_IncotermsClassificationText(IncotermsClassification=...,Language='EN')`                                                    | **Incoterms Service**                      | Fetch **Incoterms description** (FOB, CIF, etc.).                               |

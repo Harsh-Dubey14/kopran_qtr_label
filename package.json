@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "loggoff": "node scripts/loggoff.js",
+    "logon-run": "node scripts/logon-run.js",
+    "deploy:dev": "cd app && npm run build && rm -rf ../approuter/build && cp -r build ../approuter/build && cd .. && cp xs-security-dev.json xs-security.json && cp approuter/xs-app-dev.json approuter/xs-app.json && mbt build -t mta_archives && cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f",
+    "deploy:qa": "cf target -o \"Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1\" -s QUALITY && cd app && npm run build && rm -rf ../approuter/build && cp -r build ../approuter/build && cd .. && cp xs-security-quality.json xs-security.json && cp approuter/xs-app-quality.json approuter/xs-app.json && mbt build -t mta_archives && cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f",
+    "deploy:prd": "cf target -o \"Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1\" -s PRODUCTION && cd app && npm run build && rm -rf ../approuter/build && cp -r build ../approuter/build && cd .. && cp xs-security-prod.json xs-security.json && cp approuter/xs-app-production.json approuter/xs-app.json && mbt build -t mta_archives && cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
+  }
+}

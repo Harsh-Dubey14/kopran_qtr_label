@@ -1,0 +1,171 @@
+doctype html
+html
+  head
+    meta(charset="UTF-8")
+    title Export Invoice
+  body(style="font-family: Arial, sans-serif; font-size: 12px; padding: 10px; margin: 10px; background: #fff;")
+    .invoice-wrapper(style="box-sizing: border-box;")
+      h2(style="text-align: center; margin-bottom: 0px; padding: 0px;") EXPORT INVOICE FOR CUSTOMS
+      h4(style="text-align: center; margin-bottom: 5px; padding: 5px;") INVOICE
+
+      .section(style="padding: 0px; box-sizing: border-box;")
+        table(style="width: 100%; border-collapse: collapse; font-size: 12px;")
+          tr
+            // Left: Exporter Info (takes full height of two rows)
+            td(rowspan="2", style="border: 1px solid #000; padding: 2px; width: 40%; vertical-align: top;")
+              strong Exporter:
+              br
+              | MERIT POLYMERS PRIVATE LIMITED
+              br
+              | SURVEY NO.370/1 (2),
+              br
+              | KACHIGAM,
+              br
+              | NANI DAMAN-396210 INDIA
+            // Right Top: Invoice & Exporter's Ref
+            td(style="border: 1px solid #000; padding: 2px; width: 35%; vertical-align: top;")
+              strong Invoice No. & Date:
+              br
+              span(style="font-weight: normal;") MPR U3 283/24-25 Dt.17.03.2025
+              br
+              br
+              strong Buyer’s Order No. & Date:
+              br
+              | 
+              br
+              strong Other Reference(s):
+            td(style="border: 1px solid #000; padding: 2px; width: 25%; vertical-align: top;")
+              strong Exporter’s Ref:
+              br
+              | GSTIN NO.: 26AAOCM3634M1ZZ
+              br
+              | IEC NO.: 0309054265
+
+          tr
+            // Right Bottom: Country of Origin & Destination
+            td(style="border: 1px solid #000; padding: 2px; vertical-align: top;")
+              strong Country of Origin of Goods:
+              br
+              | INDIA
+            td(style="border: 1px solid #000; padding: 2px; vertical-align: top;")
+              strong Country of Final Destination:
+              br
+              | KENYA
+
+      .section(style="border: 0px solid #000; padding: 0px; box-sizing: border-box;margin-top: 0px")
+        table(style="width: 100%; border-collapse: collapse; font-size: 12px;margin-top: 0px")
+          tr(style="width: 100%; border-collapse: collapse; font-size: 12px;margin-top: 0px")
+            // 2. Left: Consignee Info (takes full height of two rows)
+            td(rowspan="2", style="border: 1px solid #000; padding: 2px; width: 40%; vertical-align: top;")
+              strong Consignee:
+              br
+              | TO THE ORDER
+              br
+              | kenya,
+            // 2. Right Top: Buyer if other than consignee
+            td(style="border: 1px solid #000; padding: 2px; vertical-align: top;")
+              strong Buyer if other than consignee:
+              br
+              span(style="font-weight: normal;") M/S.KENPOLY MANUFACTURERS LIMITED
+              br
+              strong LUNGA LUNGA ROAD, INDUSTRIAL AREA
+              br
+              strong P.O.BOX 30032. NAIROBI GPO 00100:
+              br
+              | NAIROBI, KENYA
+
+      .section(style="border: 0px solid #000; padding: 0px; box-sizing: border-box;margin-top: 0px")
+        table(style="width: 100%; border-collapse: collapse; font-size: 12px;margin-top: 0px")
+          tr(style="width: 100%; border-collapse: collapse; font-size: 12px;margin-top: 0px")
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Pre Carriage by:
+              br
+              | BY SEA
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Place of Receipt by Pre-carrier:
+              br
+              | JNPT / INDIA
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Terms of Delivery:
+              br
+              span(style="font-weight: normal;") CIF
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Terms of Payment:
+              br
+              span(style="font-weight: normal;") 90 DAYS D/A OF BL DATE
+
+          tr
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Port of Discharge:
+              br
+              span(style="font-weight: normal;") MOMBASA, KENYA
+            td(style="border: 1px solid #000; padding: 2px;")
+              strong Final Destination:
+              br
+              span(style="font-weight: normal;") MOMBASA, KENYA
+            td(colspan="2", style="border: 1px solid #000; padding: 2px;")
+              // Empty merged cell for alignment
+          
+            .section(style="border: 1px solid #000; padding: 3px;")
+              table(style="width: 100%; border-collapse: collapse; margin-top: 0px;")
+                thead
+                  tr
+                    th(style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;font-size:12px") Description of Goods
+                    th(style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;font-size:12px") Quantity (KG)
+                    th(style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;font-size:12px") Rate (US $)
+                    th(style="border: 1px solid #000; padding: 4px;  text-align: left; vertical-align: top;font-size:12px") Amount (US $)
+                tbody
+                  tr
+                    td(style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;font-size:12px")
+                      | I) FILLED POLY PROPYLENE COMPOUND
+                      br
+                      | (80% + 1% Filler Content)
+                      br
+                      | KP FUR ECO
+                      br
+                      | H.S.CODE: 3902.90.00
+                      br
+                      | Net Content/kg: Polypropylene Granules 180g, CaCO3 800g, Zinc Stearate 20g
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 15750
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 0.42332
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 6667.29
+                  tr
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px")
+                      | II) COLOUR MASTER BATCHES
+                      br
+                      | H.S.CODE: 32061900
+                      br
+                      | Net Content/kg: PE 0.55kg, TiO2 0.35kg, Pigments 0.03kg, OB 0.002kg, UV/AO 0.01kg, Wax 0.008kg, CaCO3 0.05kg
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 10625
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 2.73049
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 29011.46
+                  tr
+                    td(colspan="3", style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;font-size:12px") TOTAL FOB
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 34008.75
+                  tr
+                    td(colspan="3", style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;font-size:12px") FREIGHT (MOMBASA)
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 1650.00
+                  tr
+                    td(colspan="3", style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;font-size:12px") INSURANCE
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 20.00
+                  tr
+                    td(colspan="3", style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;font-size:12px") TOTAL CIF VALUE
+                    td(style="border: 1px solid #000; padding: 4px;font-size:12px") 35678.75
+
+      .section(style="border: 1px solid #000; padding: 3px; font-weight: normal;font-size:12px")
+        | Amount chargeable (In words):
+        br
+        | CIF USD THIRTY FIVE THOUSAND SIX HUNDRED SEVENTY EIGHT AND CENTS SEVENTY FIVE ONLY.
+
+      .section(style="border: 1px solid #000; padding: 3px;font-size:12px")
+        strong Marks & Nos:
+        |  MADE IN INDIA
+        br
+        strong No. & Kind of Pkgs:
+        |  1055 BAGS (01 TO 1055)
+        br
+        strong Gross Wt:
+        |  26469.950 KGS
+        br
+        strong Net Wt:
+        |  26375.000 KGS

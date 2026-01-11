@@ -1,0 +1,21 @@
+{
+  "xsappname": "invoicing-capm-clean-auth",
+  "tenant-mode": "shared",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "User access"
+    },
+    {
+      "name": "$XSAPPNAME.BillingService.read",
+      "description": "Access Billing API"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "User",
+      "description": "User Role",
+      "scope-references": ["$XSAPPNAME.User"]
+    }
+  ]
+}

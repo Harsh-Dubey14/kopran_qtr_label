@@ -1,0 +1,29 @@
+cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+
+4. change # 🛡️ Step 5: Apply quality-specific configurations according to env and then copy paste the below in terminal 
+
+# 🚀 Step 1: Build React App
+cd app
+npm run build
+
+# 🔄 Step 2: Replace Approuter Build
+rm -rf ../approuter/build
+cp -r build ../approuter/build
+cd ..
+
+# ❌ Step 3: Clean previous deployment
+#cf undeploy invoicing-capm -f --delete-services
+
+# 🧹 Step 4: Clean archive folder
+# rm -rf mta_archives
+
+# 🛡️ Step 5: Apply quality-specific configurations
+
+ cp xs-security-prod.json xs-security.json
+ cp approuter/xs-app-production.json approuter/xs-app.json
+
+# 🏗️ Step 6: Rebuild MTA
+mbt build -t mta_archives
+
+# ☁️ Step 7: Deploy MTAR
+cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f

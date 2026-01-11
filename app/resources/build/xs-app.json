@@ -1,0 +1,14 @@
+{
+    "welcomeFile": "/index.html",
+    "authenticationMethod": "none",
+    "routes": [
+      {
+        "source": "^/rest/(.*)$",
+        "target": "/rest/$1",
+        "destination": "invoice-backend",
+        "csrfProtection": false,
+        "authenticationType": "none"
+      }
+    ]
+  }
+  

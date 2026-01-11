@@ -1,0 +1,17 @@
+# Step 1: DEV
+git checkout merit2-dev-main
+git pull origin merit2-dev-main
+# git pull origin merit2-dev-main
+
+# Step 2: QUALITY
+git checkout merit2-quality-main
+git pull origin merit2-quality-main
+git merge merit2-dev-main --allow-unrelated-histories
+git push origin merit2-quality-main
+
+# Step 3: PRODUCTION
+git checkout merit2-production-main
+git pull origin merit2-production-main
+git merge merit2-quality-main
+git merge merit2-quality-main --allow-unrelated-histories
+git push origin merit2-production-main

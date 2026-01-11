@@ -1,0 +1,63 @@
+=============================================
+📄 xs-security.json Documentation
+Location: Root of project (for XSUAA)
+App: invoicing-capm-clean-auth
+Purpose: Configure OAuth2 Scopes, Roles, and Tenant Mode
+=============================================
+
+🧩 Purpose:
+The `xs-security.json` file defines the **authorization model** (scopes and role templates) used by the **XSUAA (SAP Authorization and Trust Management Service)**.
+
+This file is referenced by:
+→ `mta.yaml → xsuaa-invoicing-capm-clean` resource  
+→ Required to enable secured routes via `xsuaa` in `xs-app.json`
+
+-------------------------------------------------
+🔐 Property: "xsappname"
+-------------------------------------------------
+Value: `"invoicing-capm-clean-auth"`
+
+✔ Globally unique name for your application's OAuth2 client.
+✔ All scopes and roles prefixed with this value via `$XSAPPNAME`.
+
+---
+
+-------------------------------------------------
+🌍 Property: "tenant-mode"
+-------------------------------------------------
+Value: `"shared"`
+
+✔ Indicates that this application can support **multi-tenant** environments.
+✔ Each consumer tenant will have isolated tokens, roles, and users.
+
+---
+
+-------------------------------------------------
+🔓 Property: "scopes"
+-------------------------------------------------
+
+1️⃣ `$XSAPPNAME.User`
+✔ Base scope for user-level access
+✔ Used in approuter to guard general access to the app
+
+2️⃣ `$XSAPPNAME.BillingService.read`
+✔ Custom scope for restricting read access to billing-related services
+
+Each scope contains:
+- `"name"`: Must begin with `$XSAPPNAME.` for proper namespace scoping
+- `"description"`: User-friendly label visible in SAP BTP role editor
+
+---
+
+-------------------------------------------------
+🎭 Property: "role-templates"
+-------------------------------------------------
+
+Defines reusable **roles** that group scopes together. These can be assigned to users.
+
+Each role-template includes:
+- `"name"`: e.g., `"User"`
+- `"description"`: Display label in BTP cockpit
+- `"scope-references"`: List of scopes this role grants access to
+
+Example:

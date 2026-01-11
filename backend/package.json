@@ -1,0 +1,71 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "devServer": {
+    "allowedHosts": [
+      "all"
+    ]
+  },
+  "dependencies": {
+    "@sap-cloud-sdk/connectivity": "^3",
+    "@sap-cloud-sdk/http-client": "^3",
+    "@sap-cloud-sdk/resilience": "^3",
+    "@sap/cds": "^8.9.4",
+    "@sap/xsenv": "^5.6.1",
+    "@sap/xssec": "^4.8.0",
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4",
+    "nodemailer": "^7.0.5",
+    "num2words": "^1.0.2",
+    "number-to-words": "^1.2.4",
+    "pdfkit": "^0.17.2",
+    "pug": "^3.0.3",
+    "qrcode": "^1.5.4",
+    "to-words": "^4.7.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@cap-js/cds-types": "^0.10.0",
+    "@cap-js/sqlite": "^1",
+    "@sap/cds-dk": "^8",
+    "axios": "^1.5.0",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.1.10"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "dev": "nodemon --watch srv --watch db --ext cds,js,json,csv --exec \"cds watch\"",
+    "test": "mocha --recursive --exit",
+    "test:verbose": "mocha --recursive --reporter spec --exit"
+  },
+  "cds": {
+    "requires": {
+      "auth": {
+        "kind": "mocked"
+      },
+      "BillingAPI": {
+        "kind": "odata-v2",
+        "model": "../backend/external/API_BILLING_DOCUMENT_SRV.csn",
+        "credentials": {
+          "url": "https://my414535-api.s4hana.cloud.sap:443/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/",
+          "authentication": "BasicAuthentication"
+        }
+      },
+      "API_BILLING_DOCUMENT_SRV": {
+        "kind": "odata-v2",
+        "model": "../backend/external/API_BILLING_DOCUMENT_SRV.csn",
+        "credentials": {
+          "url": "https://my414535-api.s4hana.cloud.sap:443/sap/opu/odata/sap/API_BILLING_DOCUMENT_SRV/",
+          "authentication": "BasicAuthentication"
+        }
+      }
+    }
+  }
+}

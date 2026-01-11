@@ -1,0 +1,66 @@
+{
+  "title": "EXPORT INVOICE FOR CUSTOMS",
+  "invoiceTitle": "INVOICE",
+  "exporter": {
+    "name": "MERIT POLYMERS PRIVATE LIMITED",
+    "address": "SURVEY NO.370/1 (2), KACHIGAM, NANI DAMAN-396210 INDIA"
+  },
+  "invoiceDetails": {
+    "invoiceNumberDate": "MPR U3 283/24-25 Dt.17.03.2025",
+    "buyerOrderNumberDate": "",
+    "otherReferences": "",
+    "gstin": "26AAOCM3634M1ZZ",
+    "iec": "0309054265"
+  },
+  "countryInfo": {
+    "origin": "INDIA",
+    "destination": "KENYA"
+  },
+  "consignee": {
+    "name": "TO THE ORDER",
+    "address": "kenya"
+  },
+  "buyer": {
+    "name": "M/S.KENPOLY MANUFACTURERS LIMITED",
+    "address": "LUNGA LUNGA ROAD, INDUSTRIAL AREA, P.O.BOX 30032. NAIROBI GPO 00100: NAIROBI, KENYA"
+  },
+  "shipping": {
+    "preCarriageBy": "BY SEA",
+    "placeOfReceipt": "JNPT / INDIA",
+    "termsOfDelivery": "CIF",
+    "termsOfPayment": "90 DAYS D/A OF BL DATE",
+    "portOfDischarge": "MOMBASA, KENYA",
+    "finalDestination": "MOMBASA, KENYA"
+  },
+  "items": [
+    {
+      "description": "I) FILLED POLY PROPYLENE COMPOUND (80% + 1% Filler Content), KP FUR ECO",
+      "hsCode": "3902.90.00",
+      "composition": "Polypropylene Granules 180g, CaCO3 800g, Zinc Stearate 20g",
+      "quantityKg": 15750,
+      "rateUsd": 0.42332,
+      "amountUsd": 6667.29
+    },
+    {
+      "description": "II) COLOUR MASTER BATCHES",
+      "hsCode": "32061900",
+      "composition": "PE 0.55kg, TiO2 0.35kg, Pigments 0.03kg, OB 0.002kg, UV/AO 0.01kg, Wax 0.008kg, CaCO3 0.05kg",
+      "quantityKg": 10625,
+      "rateUsd": 2.73049,
+      "amountUsd": 29011.46
+    }
+  ],
+  "totals": {
+    "fob": 34008.75,
+    "freight": 1650.00,
+    "insurance": 20.00,
+    "cif": 35678.75
+  },
+  "amountInWords": "CIF USD THIRTY FIVE THOUSAND SIX HUNDRED SEVENTY EIGHT AND CENTS SEVENTY FIVE ONLY.",
+  "marksAndPackages": {
+    "marksAndNos": "MADE IN INDIA",
+    "numberAndKindOfPackages": "1055 BAGS (01 TO 1055)",
+    "grossWeight": "26469.950 KGS",
+    "netWeight": "26375.000 KGS"
+  }
+}

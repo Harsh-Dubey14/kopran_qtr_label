@@ -1,0 +1,119 @@
+==============================
+📄 XS-APP.JSON DOCUMENTATION
+File: xs-app.json (Approuter config)
+Project: invoicing-capm
+Purpose: Configure routing, authentication, and resource access via SAP Approuter
+==============================
+
+🧩 File Role:
+This file defines how SAP Approuter should route and protect paths for:
+- Static UI content (React frontend)
+- CAPM backend APIs (/rest/, /odata/)
+- Fiori Launchpad tile routing
+- Resource loading
+
+------------------------------
+🔐 authenticationMethod: "route"
+------------------------------
+✔ Enables XSUAA-based authentication on a per-route basis (via `authenticationType`).
+✔ Recommended for applications needing both public and protected routes.
+
+==============================
+🔁 ROUTES CONFIGURATION
+==============================
+
+1️⃣ Route: /resources/*
+------------------------------
+{
+  "source": "^/resources/(.*)$",
+  "target": "$1",
+  "localDir": "resources",
+  "authenticationType": "none"
+}
+
+✔ Serves static resources (icons, fonts, etc.) without authentication.
+✔ Used internally by SAPUI5/React when loading assets.
+
+---
+
+2️⃣ Route: /rest/*
+------------------------------
+{
+  "source": "^/rest/(.*)$",
+  "target": "/rest/$1",
+  "destination": "srv-api-inv",
+  "authenticationType": "xsuaa"
+}
+
+✔ Forwards `/rest/*` calls to CAPM backend (Node.js service).
+✔ Destination name: `srv-api-inv` (provided in `mta.yaml`)
+✔ Requires valid XSUAA authentication (`authenticationType: xsuaa`).
+✔ Used for REST-style custom endpoints.
+
+---
+
+3️⃣ Route: /odata/*
+------------------------------
+{
+  "source": "^/odata/(.*)$",
+  "target": "/odata/$1",
+  "destination": "srv-api-inv",
+  "authenticationType": "xsuaa"
+}
+
+✔ Forwards `/odata/*` calls to CAPM's OData service.
+✔ Protected by XSUAA.
+✔ Used for exposing CDS-based services (Fiori Elements or external APIs).
+
+---
+
+4️⃣ Route: /invoicing-capm-reactapp/*
+------------------------------
+{
+  "source": "^/invoicing-capm-reactapp/(.*)$",
+  "target": "/$1",
+  "localDir": "build",
+  "authenticationType": "xsuaa"
+}
+
+✔ This route is essential for **Fiori Launchpad tile support**.
+✔ The FLP will call this route when launching your app from a tile.
+✔ Maps the FLP tile intent (`semanticObject/action`) to your frontend's build output.
+✔ Still protected by XSUAA (user must log in).
+
+---
+
+5️⃣ Fallback Route: /*
+------------------------------
+{
+  "source": "^/(.*)$",
+  "target": "/$1",
+  "localDir": "build",
+  "authenticationType": "xsuaa"
+}
+
+✔ Default catch-all route for serving React frontend.
+✔ Ensures routing (e.g., `/dashboard`, `/invoice/123`) works with React Router.
+✔ Important for "refresh-safe" navigation — prevents 404 on page reload.
+✔ Also protected by XSUAA.
+
+==============================
+🧠 Summary of Key Behaviors
+==============================
+
+- ✅ UI content from `build/` is served with login (XSUAA).
+- ✅ Backend APIs (`/rest`, `/odata`) are protected.
+- ✅ `/resources/` are public.
+- ✅ FLP tile accesses `/invoicing-capm-reactapp` route.
+- ✅ React Router SPA navigation is safe with the catch-all `^/(.*)$` route.
+
+==============================
+✅ Tips for Maintenance
+==============================
+- Make sure the `destination` names (`srv-api-inv`) match those in your `mta.yaml`.
+- Use `xsuaa` for all secure routes — do not expose sensitive data with `"none"`.
+- If you add new routes (e.g., `/api/`), copy structure from `/rest/` or `/odata/`.
+
+==============================
+End of Documentation
+==============================

@@ -1,0 +1,122 @@
+=========================================
+📄 manifest.json Documentation
+Location: app/public/manifest.json
+App: Export Invoice React App (FLP tile-enabled)
+=========================================
+
+🧩 Purpose:
+Defines SAP-specific metadata for your frontend app (React) to:
+- Register the app as a tile in SAP Fiori Launchpad
+- Provide semantic navigation (semanticObject/action)
+- Describe UI metadata like icons, names, display mode
+
+-----------------------------------------
+🔖 sap.app
+-----------------------------------------
+
+"id": "export.frontend.ui"
+✔ Unique application ID used in FLP and runtime
+
+"title": "Export Invoice App"
+✔ Display title for the app in FLP content manager
+
+"description": "SAP UI5 React app for invoice exporting"
+✔ Short summary shown in tile or content explorer
+
+"applicationVersion.version": "1.0.0"
+✔ Versioning of the application
+
+---
+
+📦 crossNavigation > inbounds
+✔ Defines the FLP tile's intent and how FLP resolves it
+
+Key Properties:
+- "semanticObject": "ExportInvoice"
+- "action": "display"
+
+This defines the **intent** `#ExportInvoice-display`, which is how the tile will call the app.
+
+Resolution Result:
+- "applicationType": "URL"
+- "url": "/export-frontend-ui"
+  → This is the route the FLP uses to launch your app (must match Approuter route)
+- "additionalInformation": "SAPUI5.Component=export.frontend.ui"
+  → Legacy property used for compatibility with UI5 FLP shell
+
+"icon": "sap-icon://business-card"
+✔ Icon shown in tile (SAP icon set)
+
+"parameters": {}
+✔ Accepts optional parameters (empty for now)
+
+---
+
+🟦 sap.cloud
+-----------------------------------------
+"public": true
+✔ Indicates app is public within the subaccount
+
+"service": "export.frontend.ui"
+✔ Logical identifier used by Launchpad/Content deployment
+
+---
+
+☁ sap.platform.cf
+-----------------------------------------
+"appRouterId": "export-frontend-ui"
+✔ ID of the Approuter module in MTA; FLP will resolve the route using this
+
+---
+
+🏢 sap.platform.hcp
+-----------------------------------------
+"subdomain": "meritpolymerssubdomain1"
+✔ Required for tenant host resolution in FLP multi-tenant environments
+
+---
+
+🖼 PWA App Metadata (used by browser/React, optional for FLP)
+-----------------------------------------
+
+"short_name": "Invoice App"
+"name": "Export Invoice React App"
+
+✔ Browser app names and shortcuts
+
+"start_url": "."
+✔ Launch path from root of deployed app
+
+"display": "standalone"
+✔ Render mode (important for mobile experience)
+
+"theme_color": "#000000"
+"background_color": "#ffffff"
+✔ Used in mobile browser status bars or installable PWA wrapper
+
+---
+
+🖼 Icons
+-----------------------------------------
+Used for:
+- Fiori Launchpad tile
+- Mobile app shortcut
+- Browser favicon
+
+- favicon.ico → used for browser tab
+- logo192.png / logo512.png → used for tile and PWA icon
+
+---
+
+🧠 Summary
+-----------------------------------------
+This manifest:
+✅ Enables your React app to appear as a tile in Fiori Launchpad
+✅ Defines the routing intent: `#ExportInvoice-display`
+✅ Uses approuter route: `/export-frontend-ui`
+✅ Includes required SAP Cloud Platform metadata
+✅ Supports multi-tenant subdomain usage
+
+==============================
+End of manifest.json Documentation
+==============================

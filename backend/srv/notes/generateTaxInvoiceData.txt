@@ -1,0 +1,157 @@
+---
+
+**📄 TAX INVOICE DATA FLOW DOCUMENTATION**
+*Handler: `generateTaxInvoiceData`*
+*Purpose: Enrich data from multiple SAP APIs to generate a complete JSON for tax invoice export.*
+
+---
+
+### 🔑 INPUT PARAM
+
+* `billingDocumentId`
+  **Source:** Passed via `req.data.billingDocumentId`
+  **Usage:** Central identifier used to fetch billing document details across APIs
+
+---
+
+### 📦 APIs Used
+
+#### \[1] Billing Header + Items – **OData V4 + V2**
+
+* **Header V4:**
+  `GET /billingdocument/0001/BillingDocument('<billingDocumentId>')?$expand=_Item($expand=_ItemText),_Partner`
+  **Returns:**
+
+  * Header fields like `BillingDocument`, `BillingDocumentDate`, `TransactionCurrency`, `IRNDetails`, `_Partner`, etc.
+
+* **Items V2:**
+  `GET /API_BILLING_DOCUMENT_SRV/A_BillingDocument('<billingDocumentId>')/to_Item?$format=json`
+  **Returns:**
+
+  * Line item list: `BillingDocumentItem`, `BillingQuantity`, `MaterialGroup`, `BillingDocumentItemText`
+
+---
+
+#### \[2] Partner (Buyer) + Ship-To Party
+
+* **Buyer (Partner with function `AG`):**
+  `GET /API_BUSINESS_PARTNER/A_BusinessPartner('<partnerId>')?$expand=to_BusinessPartnerAddress/to_MobilePhoneNumber,to_BusinessPartnerTax,to_BusinessPartnerContact`
+  **Extracted Values:**
+
+  * Name: `BusinessPartnerName` or `OrganizationBPName1`
+  * Address: `StreetName`, `CityName`, `Region`, `PostalCode`, `Country`
+  * Phone: `to_MobilePhoneNumber.results[0].PhoneNumber`
+  * GSTIN: `BPTaxType === "IN3"`
+  * PAN: `BusinessPartnerExternalID`
+
+* **Ship-To (Partner with function `SH`):**
+  `GET /API_BUSINESS_PARTNER/A_BusinessPartner('<shipToId>')?...`
+  **Same structure as above**
+
+  * Name: `BusinessPartnerName` or `OrganizationBPName1`
+  * Address fields
+  * GSTIN: `BPTaxType === "IN1"`
+
+* **Optional Contact Person for Ship-To Party (if present):**
+  `GET /A_BusinessPartner('<BusinessPartnerPerson>')?$expand=to_AddressIndependentPhone,to_AddressIndependentEmail`
+  **Returns:**
+
+  * `BusinessPartnerFullName`, `EmailAddress`
+
+---
+
+#### \[3] Pricing for Each Item
+
+* For each item:
+  `GET /API_BILLING_DOCUMENT_SRV/A_BillingDocumentItem(BillingDocument='<billingDocumentId>',BillingDocumentItem='<itemId>')/to_PricingElement?$format=json`
+  **Returns per item pricing conditions:**
+
+  * `ConditionType`, `ConditionAmount`, `ConditionRateValue`
+
+---
+
+### 🔁 KEY FIELD MAPPINGS & CALCULATIONS
+
+| Field                              | Source              | Mapping/Logic                                        |
+| ---------------------------------- | ------------------- | ---------------------------------------------------- |
+| `document.number`, `numberDate`    | Header              | Direct from `BillingDocument`, `BillingDocumentDate` |
+| `document.irn`, `ackNo`, `ackDate` | Header.IRNDetails   | Extracted if available                               |
+| `document.currency`                | Header              | `TransactionCurrency`                                |
+| `seller.*`                         | Static              | Hardcoded company data                               |
+| `buyer.name`                       | Partner             | `BusinessPartnerName` or `OrganizationBPName1`       |
+| `buyer.address`                    | Partner Address     | Mapped from `to_BusinessPartnerAddress.results[0]`   |
+| `buyer.gstin`                      | Partner Tax         | BPTaxType = `"IN3"`                                  |
+| `buyer.pan`                        | Partner             | `BusinessPartnerExternalID`                          |
+| `buyer.contact`                    | Partner Phone       | `PhoneNumber` from `to_MobilePhoneNumber.results[0]` |
+| `buyer.email`                      | Contact API         | From contact person call                             |
+| `consignee.*`                      | Ship-To Partner     | Similar mapping as buyer                             |
+| `consignee.stateCode`              | `shipAddr.Region`   | Mapped using hardcoded `stateCodeMap`                |
+| `transport.*`                      | Header              | Fallback fields, partial mapping                     |
+| `items[n]`                         | Items + Pricing API | Built dynamically, see pricing logic below           |
+| `taxSummary[]`                     | Grouped by HSN      | Summarized by HSN with rate/amount                   |
+
+---
+
+### 📊 ITEM + TAX CALCULATION LOGIC
+
+For each item:
+
+* Extract all `ConditionType` entries from Pricing API
+* Interpret as:
+
+  * `ZPR0`, `ZVAL`: **Base Amount**
+  * `JIIG`, `JOIG`: **IGST**
+  * `JICG`, `JOCG`: **CGST**
+  * `JISG`, `JOUG`: **SGST**
+* Sum all relevant taxes per item
+* Derive:
+
+  * `rate = base / qty`
+  * Round values to `2` decimals
+  * Return per-item tax rates
+
+Example:
+
+```json
+{
+  description: "...",
+  qty: 5,
+  rate: "100.00",
+  amount: "500.00",
+  hsn: "1234",
+  tax: {
+    igst: "45.00",
+    igstRate: 18,
+    cgst: "0.00",
+    cgstRate: 0,
+    sgst: "0.00",
+    sgstRate: 0
+  }
+}
+```
+
+---
+
+### 📌 TAX SUMMARY CALCULATION (Grouped by HSN)
+
+* Aggregated for each unique HSN
+* Sum of:
+
+  * `taxableAmount`, `igst`, `cgst`, `sgst`
+* Include:
+
+  * Rate % (extracted from pricing conditions)
+  * List of used conditionTypes & rate mapping for debug
+
+---
+
+### 💰 TOTALS & UTILITY
+
+* `totalAmount = ∑ base`
+* `totalIGST = ∑ igst`
+* `totalCGST = ∑ cgst`
+* `totalSGST = ∑ sgst`
+* `grandTotal = totalAmount + taxes`
+* `amountInWords` via `toWords(grandTotal)`
+
+---

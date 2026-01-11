@@ -1,0 +1,41 @@
+{
+  "environment": "quality",
+  "description": "Quality/QA Environment Configuration Dependencies",
+  "mtaFile": "mta-qa.yaml",
+  "securityFile": "xs-security-quality.json",
+  "appRouterConfig": "approuter/xs-app-quality.json",
+  "deploymentScript": "deploy-qa.sh",
+  "cloudFoundrySpace": "quality-space",
+  "cloudFoundryOrg": "Kopran Ltd_kopran-ltd-subaccount-t506bu9i",
+  "dependencies": {
+    "node": ">=14.0.0",
+    "mbt": ">=1.2.0",
+    "cloudFoundryCli": ">=8.0.0"
+  },
+  "environmentVariables": {
+    "NODE_ENV": "quality",
+    "DEBUG": "false"
+  },
+  "credentials": {
+    "API_USER": "mbk@meritpolymers.com",
+    "API_PASS": "Mitesh@2024"
+  },
+  "services": {
+    "destination": "lite",
+    "html5-apps-repo": "app-runtime",
+    "xsuaa": "application"
+  },
+  "resources": {
+    "memory": "512M",
+    "disk": "512M"
+  },
+  "approuter": {
+    "tenantHostPattern": "^(.*)--meritpolymerssubdomain1-quality-approuter.cfapps.eu10-005.hana.ondemand.com"
+  },
+  "xsuaa": {
+    "xsappname": "invoicing-capm-quality-auth",
+    "redirectUris": [
+      "https://indore-composite-p--ltd--quality-approuter.cfapps.eu10-005.hana.ondemand.com/index.html"
+    ]
+  }
+}

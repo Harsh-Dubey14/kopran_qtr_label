@@ -1,0 +1,43 @@
+{
+  "xsappname": "invoicing-capm-prod-auth",
+  "tenant-mode": "shared",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "User access"
+    },
+    {
+      "name": "$XSAPPNAME.BillingService.read",
+      "description": "Access Billing API"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "User",
+      "description": "User Role",
+      "scope-references": ["$XSAPPNAME.User"]
+    },
+    {
+      "xsappname": "invoicing-capm-quality-auth",
+      "tenant-mode": "shared",
+      "scopes": [
+        {
+          "name": "$XSAPPNAME.User",
+          "description": "User access"
+        }
+      ],
+      "role-templates": [
+        {
+          "name": "User",
+          "description": "User Role",
+          "scope-references": ["$XSAPPNAME.User"]
+        }
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://merit-polymers-pvt-ltd--meritpolymerssubdomain1-quality-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+    ]
+  }
+}

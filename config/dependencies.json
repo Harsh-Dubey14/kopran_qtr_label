@@ -1,0 +1,163 @@
+{
+  "version": "1.0.0",
+  "project": "Kopran Material Issue Note Print",
+  "description": "Centralized dependency configuration for all deployment environments",
+  "environments": {
+    "dev": {
+      "config": "config/env-dev.json",
+      "branch": "development",
+      "description": "Development environment"
+    },
+    "qa": {
+      "config": "config/env-qa.json",
+      "branch": "quality",
+      "description": "Quality/QA environment"
+    },
+    "prod": {
+      "config": "config/env-prod.json",
+      "branch": "main",
+      "description": "Production environment"
+    }
+  },
+  "globalDependencies": {
+    "node": {
+      "version": ">=14.0.0",
+      "description": "Node.js runtime"
+    },
+    "npm": {
+      "version": ">=6.0.0",
+      "description": "Node Package Manager"
+    },
+    "mbt": {
+      "version": ">=1.2.0",
+      "description": "SAP MTA Build Tool",
+      "installCommand": "npm install -g mbt"
+    },
+    "cloudFoundryCli": {
+      "version": ">=8.0.0",
+      "description": "Cloud Foundry CLI",
+      "installCommand": "Download from https://github.com/cloudfoundry/cli/releases"
+    }
+  },
+  "fileStructure": {
+    "mta": {
+      "dev": "mta-dev.yaml",
+      "qa": "mta-qa.yaml",
+      "prod": "mta-prod.yaml"
+    },
+    "security": {
+      "dev": "xs-security-dev.json",
+      "qa": "xs-security-quality.json",
+      "prod": "xs-security-production.json"
+    },
+    "appRouter": {
+      "dev": "approuter/xs-app-dev.json",
+      "qa": "approuter/xs-app-quality.json",
+      "prod": "approuter/xs-app-production.json"
+    },
+    "deployment": {
+      "dev": "deploy-dev.sh",
+      "qa": "deploy-qa.sh",
+      "prod": "deploy-prod.sh"
+    }
+  },
+  "requiredServices": {
+    "destination": {
+      "service": "destination",
+      "plan": "lite",
+      "description": "Cloud Foundry Destination Service"
+    },
+    "html5AppsRepo": {
+      "service": "html5-apps-repo",
+      "plan": "app-runtime",
+      "description": "HTML5 Application Repository Runtime"
+    },
+    "html5AppsHost": {
+      "service": "html5-apps-repo",
+      "plan": "app-host",
+      "description": "HTML5 Application Repository Host"
+    },
+    "xsuaa": {
+      "service": "xsuaa",
+      "plan": "application",
+      "description": "SAP User Account and Authentication"
+    }
+  },
+  "deploymentPrerequisites": [
+    "Node.js and npm installed",
+    "MTA Build Tool installed",
+    "Cloud Foundry CLI installed",
+    "Logged into Cloud Foundry with correct org/space",
+    "React app built (npm run build)",
+    "Environment-specific configuration files in place",
+    "Git on correct branch (dev/quality/main)"
+  ],
+  "deploymentSteps": [
+    {
+      "step": 1,
+      "description": "Build React App",
+      "command": "cd app && npm install && npm run build && cd .."
+    },
+    {
+      "step": 2,
+      "description": "Copy build to AppRouter",
+      "command": "cp -r app/build approuter/build"
+    },
+    {
+      "step": 3,
+      "description": "Clean archive folder",
+      "command": "rm -rf mta_archives"
+    },
+    {
+      "step": 4,
+      "description": "Apply environment-specific configs",
+      "command": "cp xs-security-{ENV}.json xs-security.json && cp approuter/xs-app-{ENV}.json approuter/xs-app.json"
+    },
+    {
+      "step": 5,
+      "description": "Build MTA",
+      "command": "mbt build -t mta_archives -m mta-{ENV}.yaml"
+    },
+    {
+      "step": 6,
+      "description": "Deploy to Cloud Foundry",
+      "command": "cf deploy mta_archives/invoicing-capm_*.mtar -f"
+    },
+    {
+      "step": 7,
+      "description": "Cleanup",
+      "command": "find . -name node_modules -type d -prune -exec rm -rf {} +"
+    }
+  ],
+  "gitBranches": {
+    "development": {
+      "env": "dev",
+      "description": "Development branch for ongoing feature development"
+    },
+    "quality": {
+      "env": "qa",
+      "description": "Quality/QA branch for testing and validation"
+    },
+    "main": {
+      "env": "prod",
+      "description": "Main/Production branch for release deployments"
+    }
+  },
+  "environmentVariables": {
+    "dev": {
+      "NODE_ENV": "development",
+      "DEBUG": "true",
+      "LOG_LEVEL": "debug"
+    },
+    "qa": {
+      "NODE_ENV": "quality",
+      "DEBUG": "false",
+      "LOG_LEVEL": "info"
+    },
+    "prod": {
+      "NODE_ENV": "production",
+      "DEBUG": "false",
+      "LOG_LEVEL": "warn"
+    }
+  }
+}
