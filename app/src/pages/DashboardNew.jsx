@@ -20,23 +20,26 @@ import {
   IconButton,
   useColorModeValue,
   VStack,
-  useBreakpointValue,
-  SimpleGrid,
   InputGroup,
   InputLeftElement,
-  ButtonGroup,
   Tooltip,
   Progress,
+  Badge,
+  Skeleton,
+  Fade,
+  Collapse,
+  Tag,
+  Link,
 } from "@chakra-ui/react";
 import {
   Calendar1,
   CalendarDaysIcon,
   Download,
-  FileSpreadsheet,
   SearchIcon,
   Undo,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { SunIcon, MoonIcon } from "@chakra-ui/icons";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { BASE, fetchgetMaterialDocumentItem } from "../api/api";
@@ -73,7 +76,7 @@ const isProd = () => process.env.NODE_ENV === "production";
 const debug = (...args) => {
   if (!isProd()) {
     // eslint-disable-next-line no-console
-    console.log(...args);
+    // console.log(...args);
   }
 };
 
@@ -84,12 +87,11 @@ const MAX_HISTORY = 5;
 const TEMPLATE_VERSION_KEY = "merit_template_version_v1";
 
 // default template
-const XLSX_OMIT_COLUMNS = new Set(["MetadataId", "MetadataURI", "ETag"]);
+
 
 // Brand color palette
 const BRAND_TEAL = "#008A87";
 const BRAND_PURPLE = "#5A3C9C";
-const BRAND_NAVY = "#0A163B";
 
 const TEMPLATE_DEFAULT = "v2"; // valid values: "auto", "v1", "v2"
 const savedTemplateVersion =
@@ -107,7 +109,6 @@ export default function Dashboard() {
   const [data, setData] = useState([]);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  // const [selectedID, setSelectedID] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState("20");
@@ -116,10 +117,7 @@ export default function Dashboard() {
   const [isPrintLoading, setPrintLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [deploymentEnv, setDeploymentEnv] = useState("");
-  const [ setExcelLoading] = useState(false);
-  const [templateVersion] = useState(
-    initialTemplateVersion
-  );
+  const [templateVersion] = useState(initialTemplateVersion);
   const [tableLoading, setTableLoading] = useState(false);
 
   useEffect(() => {
@@ -161,9 +159,6 @@ export default function Dashboard() {
   const headerBg = useColorModeValue("white", "gray.800");
   const headerBorder = useColorModeValue("gray.200", "gray.700");
   const titleColor = useColorModeValue("gray.800", "white");
-  const isMobile = useBreakpointValue({ base: true, md: false });
-  // Progress bar background (use hook unconditionally)
-  const progressBg = useColorModeValue("#E6F7F6", "#1A223B");
 
   // -------------------------------------------------------------------------------
 
@@ -292,7 +287,7 @@ export default function Dashboard() {
         setLoadingProgress(100); // Set progress to 100% on success
 
         if (res?.payloadLength) {
-          console.log(`Payload length: ${res.payloadLength}`);
+          // console.log(`Payload length: ${res.payloadLength}`);
         }
 
         setData(Array.isArray(res?.data) ? res.data : []);
@@ -517,13 +512,24 @@ export default function Dashboard() {
       const start =
         typeof performance !== "undefined" ? performance.now() : Date.now();
       try {
-        console.log("Preview: Sending MaterialDocuments:", ids);
+        // Parse IDs format: "MaterialDocument-MaterialDocumentItem" or just "MaterialDocument"
+        const materialDocumentItems = ids.map((id) => {
+          const parts = String(id).split("-");
+          return {
+            MaterialDocument: parts[0],
+            MaterialDocumentItem: parts[1] || "1",
+          };
+        });
+        // console.log(
+        // "Preview: Sending MaterialDocumentItems:",
+        // materialDocumentItems
+        // );
         const isBulk =
           Array.isArray(billingDocumentId) && billingDocumentId.length > 1;
         const response = await axios.post(
           `${BASE}/getMaterialDocumentDetails`,
           {
-            MaterialDocuments: ids,
+            MaterialDocumentItems: materialDocumentItems,
           }
         );
 
@@ -550,7 +556,7 @@ export default function Dashboard() {
               continue;
             }
 
-            const { blob} = await buildInvoiceBlob(invoiceData);
+            const { blob, metaTitle } = await buildInvoiceBlob(invoiceData);
             if (!blob) continue;
 
             const url = URL.createObjectURL(blob);
@@ -613,7 +619,7 @@ export default function Dashboard() {
           });
         }
       } catch (error) {
-        console.log({ error });
+        // console.log({ error });
         clearInterval(progressInterval);
         setLoadingProgress(0);
         toast({
@@ -647,111 +653,111 @@ export default function Dashboard() {
       const start =
         typeof performance !== "undefined" ? performance.now() : Date.now();
       try {
-        console.log("Print: Sending MaterialDocuments:", ids);
-        const isBulk =
-          Array.isArray(billingDocumentId) && billingDocumentId.length > 1;
+        // Parse IDs format: "MaterialDocument-MaterialDocumentItem" or just "MaterialDocument"
+        const materialDocumentItems = ids.map((id) => {
+          const parts = String(id).split("-");
+          return {
+            MaterialDocument: parts[0],
+            MaterialDocumentItem: parts[1] || "1",
+          };
+        });
+        // console.log(
+        // "Print: Sending MaterialDocumentItems:",
+        // materialDocumentItems
+        // );
+
+        // Step 1: Get material document details (JSON response)
         const response = await axios.post(
           `${BASE}/getMaterialDocumentDetails`,
           {
-            MaterialDocuments: ids,
+            MaterialDocumentItems: materialDocumentItems,
           }
         );
 
-        // API response received - update to 65%
+        // API response received - update to 50%
         clearInterval(progressInterval);
-        setProgressStage(65, 0);
+        setProgressStage(50, 0);
 
         const apiResponse = response.data;
         if (apiResponse.res !== "success" || !apiResponse.data) {
-          throw new Error("Invalid API response");
+          throw new Error(
+            apiResponse.message || "Failed to fetch material document details"
+          );
         }
 
-        const invoiceDataArray = apiResponse.data;
+        const materialData = apiResponse.data;
+        // console.log("Material document data received:", materialData);
 
-        if (isBulk) {
-          // For bulk, download multiple PDFs
-          for (let i = 0; i < invoiceDataArray.length; i++) {
-            const invoiceData = invoiceDataArray[i];
-            if (
-              !invoiceData ||
-              (!invoiceData.generateTaxInvoiceData &&
-                !invoiceData.generateExportInvoiceData)
-            ) {
-              continue;
+        // Update to 65%
+        setProgressStage(65, 100);
+
+        // Step 2: Generate PDF from the material data using server-side PDF generation
+        const pdfBlob = await axios
+          .post(
+            `${BASE}/generateLabelPdf`,
+            {
+              mappedData: materialData,
+              qrImages: [], // Add QR images if needed
+            },
+            {
+              responseType: "blob",
             }
+          )
+          .then((res) => res.data);
 
-            const { blob } = await buildInvoiceBlob(invoiceData);
-            if (!blob) continue;
+        // PDF blob created - update to 85%
+        setProgressStage(85, 100);
 
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `Billing No ${
-              billingDocumentId[i] || `Doc${i + 1}`
-            }.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }
-
-          toast({
-            title: "Bulk downloads started",
-            description: `${invoiceDataArray.length} PDFs downloaded`,
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-          });
-        } else {
-          // Single print
-          const invoiceData = invoiceDataArray[0];
-          if (
-            !invoiceData ||
-            (!invoiceData.generateTaxInvoiceData &&
-              !invoiceData.generateExportInvoiceData)
-          ) {
-            throw new Error("Incomplete invoice data received");
-          }
-
-          const { blob } = await buildInvoiceBlob(invoiceData);
-          if (!blob) throw new Error("Failed to create PDF blob");
-
-          // PDF blob created - update to 85%
-          setProgressStage(85, 100);
-
-          const url = URL.createObjectURL(blob);
-
-          // File URL created - update to 95%
-          setProgressStage(95, 100);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `Billing No ${billingDocumentId}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
-          // Download started - complete progress
-          completeProgress();
-
-          const end =
-            typeof performance !== "undefined" ? performance.now() : Date.now();
-          const elapsedMs = end - start;
-          toast({
-            title: "Downloaded",
-            description: `Billing No ${billingDocumentId}.pdf — ${(
-              elapsedMs / 1000
-            ).toFixed(2)}s`,
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-          });
+        // Verify it's a PDF
+        if (!pdfBlob || pdfBlob.size === 0) {
+          throw new Error("Empty PDF received from server");
         }
+
+        if (pdfBlob.type === "application/json") {
+          const text = await pdfBlob.text();
+          const errorData = JSON.parse(text);
+          throw new Error(
+            errorData.message || errorData.error || "PDF generation failed"
+          );
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = url;
+
+        const docCount = materialDocumentItems.length;
+        const filename =
+          docCount > 1
+            ? `Material_Documents_${docCount}_items.pdf`
+            : `Material_Doc_${materialDocumentItems[0].MaterialDocument}_Item_${materialDocumentItems[0].MaterialDocumentItem}.pdf`;
+
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Complete progress
+        completeProgress();
+
+        const end =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
+        const elapsedMs = end - start;
+
+        toast({
+          title: "PDF Downloaded",
+          description: `${filename} — ${(elapsedMs / 1000).toFixed(2)}s`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
       } catch (error) {
         clearInterval(progressInterval);
         setLoadingProgress(0);
+        console.error("Print error:", error);
         toast({
-          title: "Failed to download invoice.",
+          title: "Failed to generate PDF",
           description: error?.message || "Unexpected error occurred.",
           status: "error",
           duration: 3000,
@@ -761,13 +767,7 @@ export default function Dashboard() {
         setPrintLoading(false);
       }
     },
-    [
-      buildInvoiceBlob,
-      toast,
-      startProgressTracking,
-      setProgressStage,
-      completeProgress,
-    ]
+    [toast, startProgressTracking, setProgressStage, completeProgress]
   );
 
   const closePreview = useCallback(() => {
@@ -799,82 +799,98 @@ export default function Dashboard() {
     });
   }, [data, from, to, searchTerm]);
 
+  // 🔹 Remove duplicate MaterialDocument (pagination-safe)
+const uniqueFilteredData = useMemo(() => {
+  const map = new Map();
+
+  filteredData.forEach((item) => {
+    if (!map.has(item.MaterialDocument)) {
+      map.set(item.MaterialDocument, item);
+    }
+  });
+
+  return Array.from(map.values());
+}, [filteredData]);
+
   const totalPages = useMemo(() => {
-    if (rowsPerPage === "all") {
-      return 1;
-    }
-    const rp = Number(rowsPerPage);
-    return Math.max(1, Math.ceil(filteredData.length / rp));
-  }, [filteredData, rowsPerPage]);
+  if (rowsPerPage === "all") return 1;
 
-  const currentPageData = useMemo(() => {
-    if (rowsPerPage === "all") {
-      return filteredData;
-    }
-    const rp = Number(rowsPerPage);
-    const indexOfLast = currentPage * rp;
-    const indexOfFirst = indexOfLast - rp;
-    return filteredData.slice(indexOfFirst, indexOfLast);
-  }, [filteredData, currentPage, rowsPerPage]);
+  const rp = Number(rowsPerPage);
+  return Math.max(1, Math.ceil(uniqueFilteredData.length / rp));
+}, [uniqueFilteredData, rowsPerPage]);
 
-  const handleExportExcel = useCallback(
-    (scope = "filtered") => {
-      setExcelLoading(true);
-      try {
-        const rows = scope === "page" ? currentPageData : filteredData;
-        if (!rows || rows.length === 0) {
-          toast({ title: "No rows to export", status: "info", duration: 2500 });
-          return;
-        }
 
-        const serialize = (obj) => {
-          const entries = Object.entries(obj || {}).filter(
-            ([k]) => !XLSX_OMIT_COLUMNS.has(k)
-          );
-          return Object.fromEntries(
-            entries.map(([k, v]) => [
-              k,
-              typeof v === "object" && v !== null ? JSON.stringify(v) : v,
-            ])
-          );
-        };
+const currentPageData = useMemo(() => {
+  if (rowsPerPage === "all") {
+    return uniqueFilteredData;
+  }
 
-        const dataForXlsx = rows.map(serialize);
-        const ws = XLSX.utils.json_to_sheet(dataForXlsx, { skipHeader: false });
+  const rp = Number(rowsPerPage);
+  const indexOfLast = currentPage * rp;
+  const indexOfFirst = indexOfLast - rp;
 
-        const colWidths = Object.keys(dataForXlsx[0] || {}).map((key) => ({
-          wch:
-            Math.max(
-              key.length,
-              ...dataForXlsx.map((r) => String(r[key] ?? "").length)
-            ) + 2,
-        }));
-        ws["!cols"] = colWidths;
+  return uniqueFilteredData.slice(indexOfFirst, indexOfLast);
+}, [uniqueFilteredData, currentPage, rowsPerPage]);
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Invoices");
 
-        const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        const datePart = (from ? `from_${from}` : "") + (to ? `_to_${to}` : "");
-        const scopePart = scope === "page" ? "page" : "filtered";
-        const filename = `invoices_${scopePart}${
-          datePart ? "_" + datePart : ""
-        }_${ts}.xlsx`;
+  // const handleExportExcel = useCallback(
+  //   (scope = "filtered") => {
+  //     setExcelLoading(true);
+  //     try {
+  //       const rows = scope === "page" ? currentPageData : filteredData;
+  //       if (!rows || rows.length === 0) {
+  //         toast({ title: "No rows to export", status: "info", duration: 2500 });
+  //         return;
+  //       }
 
-        XLSX.writeFile(wb, filename);
-      } catch (e) {
-        debug(e);
-        toast({
-          title: "Excel export failed",
-          description: e?.message || "Unexpected error.",
-          status: "error",
-        });
-      } finally {
-        setExcelLoading(false);
-      }
-    },
-    // [currentPageData, filteredData, from, to, toast]
-  );
+  //       const serialize = (obj) => {
+  //         const entries = Object.entries(obj || {}).filter(
+  //           ([k]) => !XLSX_OMIT_COLUMNS.has(k)
+  //         );
+  //         return Object.fromEntries(
+  //           entries.map(([k, v]) => [
+  //             k,
+  //             typeof v === "object" && v !== null ? JSON.stringify(v) : v,
+  //           ])
+  //         );
+  //       };
+
+  //       const dataForXlsx = rows.map(serialize);
+  //       const ws = XLSX.utils.json_to_sheet(dataForXlsx, { skipHeader: false });
+
+  //       const colWidths = Object.keys(dataForXlsx[0] || {}).map((key) => ({
+  //         wch:
+  //           Math.max(
+  //             key.length,
+  //             ...dataForXlsx.map((r) => String(r[key] ?? "").length)
+  //           ) + 2,
+  //       }));
+  //       ws["!cols"] = colWidths;
+
+  //       const wb = XLSX.utils.book_new();
+  //       XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+
+  //       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  //       const datePart = (from ? `from_${from}` : "") + (to ? `_to_${to}` : "");
+  //       const scopePart = scope === "page" ? "page" : "filtered";
+  //       const filename = `invoices_${scopePart}${
+  //         datePart ? "_" + datePart : ""
+  //       }_${ts}.xlsx`;
+
+  //       XLSX.writeFile(wb, filename);
+  //     } catch (e) {
+  //       debug(e);
+  //       toast({
+  //         title: "Excel export failed",
+  //         description: e?.message || "Unexpected error.",
+  //         status: "error",
+  //       });
+  //     } finally {
+  //       setExcelLoading(false);
+  //     }
+  //   },
+  //   [currentPageData, filteredData, from, to, toast]
+  // );
 
   // Reset page to 1 if filters change and current page overflows
   useEffect(() => {
@@ -954,6 +970,7 @@ export default function Dashboard() {
 
   // Bulk selection state for InvoiceTable
   const [selectedIDs, setSelectedIDs] = useState([]);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
 
   // Bulk preview handler
   const handleBulkPreview = async (ids) => {
@@ -971,470 +988,656 @@ export default function Dashboard() {
 
   return (
     <Box p={0}>
-      {/* Header */}
-      {/* Header */}
-      {/* Header */}
-      <Box
-        mb={4}
-        px={{ base: 3, md: 4 }}
-        py={{ base: 2, md: 3 }}
-        bg={headerBg}
-        border="1px solid"
-        borderColor={headerBorder}
-        rounded="2xl"
-        boxShadow="sm"
-      >
-        {/* Top row (mobile): env pill left, theme toggle right */}
-        <Flex
-          display={{ base: "flex", md: "none" }}
-          w="100%"
-          align="center"
-          justify="space-between"
-          mb={2}
-          gap={2}
+      {/* Improved Header with Better Hierarchy */}
+      <Fade in={true} transition={{ enter: { duration: 0.3 } }}>
+        <Box
+          mb={4}
+          px={{ base: 3, md: 4 }}
+          py={{ base: 2, md: 2 }}
+          bg={headerBg}
+          border="1px solid"
+          borderColor={headerBorder}
+          rounded="xl"
+          boxShadow="sm"
         >
-          {deploymentEnv ? (
-            <Box
-              as="span"
-              display="inline-flex"
-              alignItems="center"
-              gap={2}
-              px={3}
-              py={1}
-              bg={bg}
-              color={fg}
-              fontSize="xs"
-              rounded="full"
-              fontWeight="semibold"
-              border="1px solid"
-              borderColor={bd}
-              animation={animate}
-              sx={{
-                "@keyframes pulse": {
-                  "0%": { boxShadow: "0 0 0 0 rgba(0,0,0,0.2)" },
-                  "70%": { boxShadow: "0 0 0 6px rgba(0,0,0,0)" },
-                  "100%": { boxShadow: "0 0 0 0 rgba(0,0,0,0)" },
-                },
-              }}
-            >
-              <Box boxSize="6px" rounded="full" bg={fg} opacity={0.9} />
-              {deploymentEnv.toUpperCase()}
-            </Box>
-          ) : (
-            <Box />
-          )}
-
-          <IconButton
-            aria-label="Toggle color mode"
-            size="sm"
-            variant="ghost"
-            onClick={toggleColorMode}
-            icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-          />
-        </Flex>
-
-        {/* Title row (centered, truncates safely) */}
-        <HStack spacing={{ base: 2, md: 3 }} w="100%" minW={0} justify="center">
-          <Image
-            src="/kopran_logo.png"
-            alt="Logo"
-            width={{ base: "28px", md: "40px" }}
-            height={{ base: "28px", md: "40px" }}
-            objectFit="contain"
-            borderRadius="md"
-            flexShrink={0}
-          />
-          <Heading
-            as="h1"
-            fontSize={{ base: "md", md: "lg" }}
-            fontWeight="semibold"
-            color={titleColor}
-            letterSpacing="tight"
-            noOfLines={1}
-            maxW="100%"
+          {/* Mobile Layout */}
+          <Flex
+            display={{ base: "flex", md: "none" }}
+            direction="column"
+            gap={2}
           >
-            QUARANTINE LABEL
-          </Heading>
-        </HStack>
-
-        {/* Bottom row (desktop): env left, toggle right */}
-        <Flex
-          display={{ base: "none", md: "flex" }}
-          mt={3}
-          w="100%"
-          align="center"
-          justify="space-between"
-        >
-          {deploymentEnv ? (
-            <Box
-              as="span"
-              display="inline-flex"
-              alignItems="center"
-              gap={2}
-              px={3}
-              py={1}
-              bg={bg}
-              color={fg}
-              fontSize="xs"
-              rounded="full"
-              fontWeight="semibold"
-              border="1px solid"
-              borderColor={bd}
-              animation={animate}
-              sx={{
-                "@keyframes pulse": {
-                  "0%": { boxShadow: "0 0 0 0 rgba(0,0,0,0.2)" },
-                  "70%": { boxShadow: "0 0 0 6px rgba(0,0,0,0)" },
-                  "100%": { boxShadow: "0 0 0 0 rgba(0,0,0,0)" },
-                },
-              }}
-            >
-              <Box boxSize="6px" rounded="full" bg={fg} opacity={0.9} />
-              {deploymentEnv.toUpperCase()}
-            </Box>
-          ) : (
-            <Box />
-          )}
-
-          <IconButton
-            aria-label="Toggle color mode"
-            size="sm"
-            variant="ghost"
-            onClick={toggleColorMode}
-            icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-          />
-        </Flex>
-      </Box>
-
-      {/* Filters */}
-      {/* Filters (themed for light/dark) */}
-
-      <Box
-        bg={surfaceBg}
-        p={{ base: 3, md: 4 }}
-        rounded="2xl"
-        mb={4}
-        boxShadow="sm"
-        border="1px solid"
-        borderColor={filterBorderColor}
-      >
-        <SimpleGrid
-          columns={{ base: 1, md: 3, lg: 4 }}
-          spacing={{ base: 3, md: 4 }}
-          alignItems="center"
-        >
-          {/* Search */}
-          <Box ref={inputWrapperRef} position="relative" w="100%">
-            <InputGroup size="sm">
-              <InputLeftElement pointerEvents="none">
-                <SearchIcon color={placeholderColor} />
-              </InputLeftElement>
-              <Input
-                placeholder="Search all fields"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                  setShowHistoryBox(true);
-                }}
-                onFocus={() => {
-                  if (searchHistory.length > 0) setShowHistoryBox(true);
-                }}
-                onBlur={() => {
-                  if (searchTerm && searchTerm.trim() !== "") {
-                    pushSearchHistory(searchTerm);
-                  }
-                  setShowHistoryBox(false);
-                }}
-                onKeyDown={onSearchKeyDown}
-                bg={filterInputBg}
-                borderColor={filterBorderColor}
-                _placeholder={{ color: placeholderColor }}
-                _focus={{ borderColor: "blue.400", boxShadow: "none" }}
+            <Flex justify="space-between" align="center">
+              <HStack spacing={2}>
+                <Image
+                  src="/kopran_logo.png"
+                  alt="Logo"
+                  width="28px"
+                  height="28px"
+                  objectFit="contain"
+                  borderRadius="md"
+                />
+                <Heading
+                  as="h1"
+                  fontSize="md"
+                  fontWeight="semibold"
+                  color={titleColor}
+                  letterSpacing="tight"
+                >
+                  Quarantine Label
+                </Heading>
+              </HStack>
+              <IconButton
+                aria-label="Toggle color mode"
+                size="sm"
+                variant="ghost"
+                onClick={toggleColorMode}
+                icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
               />
-            </InputGroup>
+            </Flex>
+            {deploymentEnv && (
+              <Text fontSize="xs" color={mutedTextColor} fontWeight="medium">
+                Environment: {deploymentEnv.toUpperCase()}
+              </Text>
+            )}
+          </Flex>
 
-            {/* History dropdown */}
-            {showHistoryBox && searchHistory.length > 0 && (
-              <Box
-                position="absolute"
-                zIndex={30}
-                mt={2}
-                left={0}
-                right={0}
-                bg={historyBoxBg}
-                border="1px solid"
-                borderColor={filterBorderColor}
-                boxShadow="sm"
-                rounded="md"
-                overflow="hidden"
-              >
-                <Flex
-                  justify="space-between"
-                  align="center"
-                  px={3}
-                  py={2}
-                  borderBottom="1px solid"
-                  borderBottomColor={historyBorderBottomColor}
-                  bg={historyHeaderBg}
+          {/* Desktop Layout - Compact with Inline Environment */}
+          <Box display={{ base: "none", md: "block" }}>
+            <Flex align="center" justify="space-between">
+              {/* Left: Logo + Title + Environment Badge Inline */}
+              <HStack spacing={3}>
+                <Image
+                  src="/kopran_logo.png"
+                  alt="Logo"
+                  width="28px"
+                  height="28px"
+                  objectFit="contain"
+                  borderRadius="md"
+                />
+                <Heading
+                  as="h1"
+                  fontSize="lg"
+                  fontWeight="600"
+                  color={titleColor}
+                  letterSpacing="tight"
                 >
-                  <Text fontSize="sm" fontWeight="semibold">
-                    Recent searches
-                  </Text>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearSearchHistory();
-                    }}
+                  Quarantine Label
+                </Heading>
+                {deploymentEnv && (
+                  <Badge
+                    fontSize="xs"
+                    colorScheme="gray"
+                    variant="outline"
+                    px={2}
+                    py={0.5}
+                    fontWeight="medium"
                   >
-                    Clear
-                  </Button>
-                </Flex>
+                    {deploymentEnv.toUpperCase()}
+                  </Badge>
+                )}
+              </HStack>
 
-                <VStack
-                  align="stretch"
-                  spacing={0}
-                  maxH="220px"
-                  overflowY="auto"
-                >
-                  {searchHistory.map((term, idx) => (
-                    <Box
-                      key={`${term}-${idx}`}
-                      px={3}
-                      py={2}
-                      _hover={{ bg: historyItemHoverBg }}
-                      cursor="pointer"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        onApplyHistoryTerm(term);
-                      }}
+              {/* Right: Actions */}
+              <HStack spacing={1}>
+                {/* <Menu>
+                  <MenuButton
+                    as={IconButton}
+                    icon={<MoreVertical size={18} />}
+                    variant="ghost"
+                    size="sm"
+                    aria-label="More options"
+                  />
+                  <MenuList>
+                    <MenuItem
+                      icon={<FileSpreadsheet size={16} />}
+                      // onClick={() => handleExportExcel("filtered")}
                     >
-                      <Text fontSize="sm" noOfLines={1}>
-                        {term}
-                      </Text>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
+                      Export to Excel
+                    </MenuItem>
+                  </MenuList>
+                </Menu> */}
+                <Tooltip label="Toggle theme" placement="left">
+                  <IconButton
+                    aria-label="Toggle color mode"
+                    size="sm"
+                    variant="ghost"
+                    onClick={toggleColorMode}
+                    icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+                  />
+                </Tooltip>
+              </HStack>
+            </Flex>
+          </Box>
+        </Box>
+      </Fade>
+
+      {/* Improved Filters with Better Density and Sticky Positioning */}
+      <Fade in={true} transition={{ enter: { duration: 0.4 } }}>
+        <Box
+          position={{ base: "sticky", md: "relative" }}
+          top={{ base: 0, md: "auto" }}
+          zIndex={20}
+          bg={surfaceBg}
+          rounded="xl"
+          mb={4}
+          boxShadow="md"
+          border="1px solid"
+          borderColor={filterBorderColor}
+          overflow="hidden"
+        >
+          {/* Mobile: Collapsible Header */}
+          <Box
+            display={{ base: "flex", md: "none" }}
+            alignItems="center"
+            justifyContent="space-between"
+            p={3}
+            bg={headerBg}
+            borderBottom={isFiltersOpen ? "1px solid" : "none"}
+            borderBottomColor={filterBorderColor}
+            cursor="pointer"
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            _active={{ bg: useColorModeValue("gray.50", "gray.700") }}
+          >
+            <HStack spacing={2}>
+              <SearchIcon size={16} color={mutedTextColor} />
+              <Text fontSize="sm" fontWeight="600" color={titleColor}>
+                Filters
+              </Text>
+              {(searchTerm || from || to) && (
+                <Badge colorScheme="blue" fontSize="xs">
+                  Active
+                </Badge>
+              )}
+            </HStack>
+            {isFiltersOpen ? (
+              <ChevronUp size={18} />
+            ) : (
+              <ChevronDown size={18} />
             )}
           </Box>
 
-          {/* From date */}
-          <Input
-            size="sm"
-            type="date"
-            value={from}
-            onChange={(e) => {
-              setFrom(e.target.value);
-              setCurrentPage(1);
-            }}
-            maxW="100%"
-            bg={filterInputBg}
-            borderColor={filterBorderColor}
-            _focus={{ borderColor: "blue.400", boxShadow: "none" }}
-          />
+          {/* Mobile: Collapsible Content */}
+          <Collapse in={isFiltersOpen} animateOpacity>
+            <Box display={{ base: "block", md: "none" }} p={3}>
+              <VStack spacing={3} align="stretch">
+                {/* 1. Search - Full width, tall, prominent */}
+                <Box ref={inputWrapperRef} position="relative" w="100%">
+                  <InputGroup size="md">
+                    <InputLeftElement pointerEvents="none" h="48px">
+                      <SearchIcon color={placeholderColor} size={18} />
+                    </InputLeftElement>
+                    <Input
+                      placeholder="Search all fields"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                        setShowHistoryBox(true);
+                      }}
+                      onFocus={() => {
+                        if (searchHistory.length > 0) setShowHistoryBox(true);
+                      }}
+                      onBlur={() => {
+                        if (searchTerm && searchTerm.trim() !== "") {
+                          pushSearchHistory(searchTerm);
+                        }
+                        setShowHistoryBox(false);
+                      }}
+                      onKeyDown={onSearchKeyDown}
+                      bg={filterInputBg}
+                      borderColor={filterBorderColor}
+                      _placeholder={{ color: placeholderColor }}
+                      _focus={{
+                        borderColor: "blue.400",
+                        boxShadow: "sm",
+                        borderWidth: "2px",
+                      }}
+                      h="48px"
+                      fontSize="md"
+                      fontWeight="500"
+                    />
+                  </InputGroup>
 
-          {/* To date */}
-          <Input
-            size="sm"
-            type="date"
-            value={to}
-            onChange={(e) => {
-              setTo(e.target.value);
-              setCurrentPage(1);
-            }}
-            maxW="100%"
-            bg={filterInputBg}
-            borderColor={filterBorderColor}
-            _focus={{ borderColor: "blue.400", boxShadow: "none" }}
-          />
+                  {/* History dropdown */}
+                  {showHistoryBox && searchHistory.length > 0 && (
+                    <Box
+                      position="absolute"
+                      zIndex={30}
+                      mt={2}
+                      left={0}
+                      right={0}
+                      bg={historyBoxBg}
+                      border="1px solid"
+                      borderColor={filterBorderColor}
+                      boxShadow="lg"
+                      rounded="md"
+                      overflow="hidden"
+                    >
+                      <Flex
+                        justify="space-between"
+                        align="center"
+                        px={3}
+                        py={2}
+                        borderBottom="1px solid"
+                        borderBottomColor={historyBorderBottomColor}
+                        bg={historyHeaderBg}
+                      >
+                        <Text fontSize="sm" fontWeight="semibold">
+                          Recent searches
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearSearchHistory();
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </Flex>
 
-          {/* Quick range + actions */}
-          <HStack justify={{ base: "flex-start", md: "flex-end" }} spacing={2}>
-            <ButtonGroup isAttached size="sm" variant="ghost">
-              <Tooltip label="Set From/To to today">
-                <Button onClick={() => applyQuickDate("today")}>
-                  <Calendar1 />
+                      <VStack
+                        align="stretch"
+                        spacing={0}
+                        maxH="220px"
+                        overflowY="auto"
+                      >
+                        {searchHistory.map((term, idx) => (
+                          <Box
+                            key={`${term}-${idx}`}
+                            px={3}
+                            py={3}
+                            _hover={{ bg: historyItemHoverBg }}
+                            cursor="pointer"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              onApplyHistoryTerm(term);
+                            }}
+                          >
+                            <Text fontSize="sm" noOfLines={1}>
+                              {term}
+                            </Text>
+                          </Box>
+                        ))}
+                      </VStack>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* 2. Date Range - Single consolidated control */}
+                <VStack spacing={2} align="stretch">
+                  <Text
+                    fontSize="xs"
+                    color={mutedTextColor}
+                    fontWeight="600"
+                    textTransform="uppercase"
+                  >
+                    Date Range
+                  </Text>
+                  <VStack spacing={2}>
+                    <Input
+                      size="md"item
+                      type="date"
+                      placeholder="From date"
+                      value={from}
+                      onChange={(e) => {
+                        setFrom(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      bg={useColorModeValue("gray.50", "gray.700")}
+                      borderColor={filterBorderColor}
+                      _focus={{
+                        borderColor: "blue.400",
+                        boxShadow: "sm",
+                        borderWidth: "2px",
+                      }}
+                      h="44px"
+                    />
+                    <Input
+                      size="md"
+                      type="date"
+                      placeholder="To date"
+                      value={to}
+                      onChange={(e) => {
+                        setTo(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      bg={useColorModeValue("gray.50", "gray.700")}
+                      borderColor={filterBorderColor}
+                      _focus={{
+                        borderColor: "blue.400",
+                        boxShadow: "sm",
+                        borderWidth: "2px",
+                      }}
+                      h="44px"
+                    />
+                  </VStack>
+                </VStack>
+
+                {/* 3. Quick Filters - Horizontal scrollable chips */}
+                <Box>
+                  <Flex
+                    overflowX="auto"
+                    gap={2}
+                    pb={1}
+                    css={{
+                      "&::-webkit-scrollbar": { display: "none" },
+                      scrollbarWidth: "none",
+                    }}
+                  >
+                    <Tag
+                      size="lg"
+                      variant="outline"
+                      colorScheme="teal"
+                      cursor="pointer"
+                      onClick={() => applyQuickDate("today")}
+                      px={4}
+                      py={2}
+                      fontSize="sm"
+                      fontWeight="600"
+                      _active={{ bg: "teal.50" }}
+                      whiteSpace="nowrap"
+                    >
+                      <Calendar1 size={14} style={{ marginRight: "6px" }} />
+                      Today
+                    </Tag>
+                    <Tag
+                      size="lg"
+                      variant="outline"
+                      colorScheme="purple"
+                      cursor="pointer"
+                      onClick={() => applyQuickDate("month")}
+                      px={4}
+                      py={2}
+                      fontSize="sm"
+                      fontWeight="600"
+                      _active={{ bg: "purple.50" }}
+                      whiteSpace="nowrap"
+                    >
+                      <CalendarDaysIcon
+                        size={14}
+                        style={{ marginRight: "6px" }}
+                      />
+                      This Month
+                    </Tag>
+                    <Link
+                      color="red.500"
+                      fontSize="sm"
+                      fontWeight="600"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFrom("");
+                        setTo("");
+                        setCurrentPage(1);
+                      }}
+                      alignSelf="center"
+                      ml={2}
+                      whiteSpace="nowrap"
+                    >
+                      Clear All
+                    </Link>
+                  </Flex>
+                </Box>
+
+                {/* 4. Primary CTA - Full width at bottom */}
+                <Button
+                  size="lg"
+                  colorScheme="teal"
+                  bg={BRAND_TEAL}
+                  color="white"
+                  _hover={{ bg: BRAND_PURPLE }}
+                  _active={{ transform: "scale(0.98)" }}
+                  onClick={onGoClicked}
+                  w="100%"
+                  h="48px"
+                  fontWeight="700"
+                  fontSize="md"
+                  mt={2}
+                >
+                  Apply Filters
                 </Button>
-              </Tooltip>
-              <Tooltip label="Set From to 1st of this month, To to today">
-                <Button onClick={() => applyQuickDate("month")}>
-                  {" "}
-                  <CalendarDaysIcon />
-                </Button>
-              </Tooltip>
-            </ButtonGroup>
+              </VStack>
+            </Box>
+          </Collapse>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setSearchTerm("");
-                setFrom("");
-                setTo("");
-                setCurrentPage(1);
-              }}
-            >
-              <Undo />
-            </Button>
+          {/* Desktop Layout */}
+          <Box display={{ base: "none", md: "block" }} p={3}>
+            <VStack spacing={3} align="stretch">
+              <Box ref={inputWrapperRef} position="relative" w="100%">
+                <InputGroup size="sm">
+                  <InputLeftElement pointerEvents="none">
+                    <SearchIcon color={placeholderColor} />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Search all fields"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                      setShowHistoryBox(true);
+                    }}
+                    onFocus={() => {
+                      if (searchHistory.length > 0) setShowHistoryBox(true);
+                    }}
+                    onBlur={() => {
+                      if (searchTerm && searchTerm.trim() !== "") {
+                        pushSearchHistory(searchTerm);
+                      }
+                      setShowHistoryBox(false);
+                    }}
+                    onKeyDown={onSearchKeyDown}
+                    bg={filterInputBg}
+                    borderColor={filterBorderColor}
+                    _placeholder={{ color: placeholderColor }}
+                    _focus={{ borderColor: "blue.400", boxShadow: "none" }}
+                  />
+                </InputGroup>
 
-            <Button
-              size="sm"
-              colorScheme="teal"
-              bg={BRAND_TEAL}
-              color="white"
-              _hover={{ bg: BRAND_PURPLE }}
-              onClick={onGoClicked}
-            >
-              Go
-            </Button>
+                {/* History dropdown */}
+                {showHistoryBox && searchHistory.length > 0 && (
+                  <Box
+                    position="absolute"
+                    zIndex={30}
+                    mt={2}
+                    left={0}
+                    right={0}
+                    bg={historyBoxBg}
+                    border="1px solid"
+                    borderColor={filterBorderColor}
+                    boxShadow="sm"
+                    rounded="md"
+                    overflow="hidden"
+                  >
+                    <Flex
+                      justify="space-between"
+                      align="center"
+                      px={3}
+                      py={2}
+                      borderBottom="1px solid"
+                      borderBottomColor={historyBorderBottomColor}
+                      bg={historyHeaderBg}
+                    >
+                      <Text fontSize="sm" fontWeight="semibold">
+                        Recent searches
+                      </Text>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearSearchHistory();
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </Flex>
 
-            <Tooltip label="Export all filtered rows">
-              <Button
-                size="sm"
-                colorScheme="purple"
-                bg={BRAND_PURPLE}
-                color="white"
-                _hover={{ bg: BRAND_TEAL }}
-                onClick={() => handleExportExcel("filtered")}
-                aria-label="Export Excel"
+                    <VStack
+                      align="stretch"
+                      spacing={0}
+                      maxH="220px"
+                      overflowY="auto"
+                    >
+                      {searchHistory.map((term, idx) => (
+                        <Box
+                          key={`${term}-${idx}`}
+                          px={3}
+                          py={2}
+                          _hover={{ bg: historyItemHoverBg }}
+                          cursor="pointer"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            onApplyHistoryTerm(term);
+                          }}
+                        >
+                          <Text fontSize="sm" noOfLines={1}>
+                            {term}
+                          </Text>
+                        </Box>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Row 2: Date Range + Actions */}
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                gap={3}
+                align={{ base: "stretch", md: "center" }}
               >
-                <FileSpreadsheet size={12} />
-                {!isMobile && <Box as="span" ml={0}></Box>}
-              </Button>
-            </Tooltip>
+                {/* Date Range - Visually Secondary */}
+                {/* <HStack flex={1} spacing={2}>
+                  <Text
+                    fontSize="xs"
+                    color={mutedTextColor}
+                    fontWeight="medium"
+                  >
+                    Date range:
+                  </Text>
+                  <Input
+                    size="sm"
+                    type="date"
+                    placeholder="From date"
+                    value={from}
+                    onChange={(e) => {
+                      setFrom(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    bg={useColorModeValue("gray.50", "gray.700")}
+                    borderColor={filterBorderColor}
+                    opacity={0.9}
+                    _focus={{
+                      borderColor: "blue.400",
+                      boxShadow: "none",
+                      opacity: 1,
+                    }}
+                    fontSize="sm"
+                  />
+                  <Text fontSize="xs" color={mutedTextColor}>
+                    to
+                  </Text>
+                  <Input
+                    size="sm"
+                    type="date"
+                    placeholder="To date"
+                    value={to}
+                    onChange={(e) => {
+                      setTo(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    bg={useColorModeValue("gray.50", "gray.700")}
+                    borderColor={filterBorderColor}
+                    opacity={0.9}
+                    _focus={{
+                      borderColor: "blue.400",
+                      boxShadow: "none",
+                      opacity: 1,
+                    }}
+                    fontSize="sm"
+                  />
+                </HStack> */}
 
-            {/* <Box maxW="180px" w={{ base: "140px", md: "180px" }}>
-            <Select
-              size="sm"
-              value={templateVersion}
-              onChange={(e) => setTemplateVersion(e.target.value)}
-              title="Choose PDF template"
-            >
-              <option value="auto">Auto</option>
-              <option value="v1">Legacy</option>
-              <option value="v2">New</option>
-            </Select>
-          </Box> */}
-          </HStack>
-        </SimpleGrid>
-      </Box>
+                {/* Actions - Better Spacing and Labels */}
+               <HStack spacing={3} ml="auto">
+  <Button
+    size="sm"
+    variant="outline"
+    leftIcon={<Undo size={14} />}
+    onClick={() => {
+      setSearchTerm("");
+      setFrom("");
+      setTo("");
+      setCurrentPage(1);
+    }}
+    fontSize="xs"
+  >
+    Clear
+  </Button>
 
-      {/* Global Progress Overlay */}
+  <Button
+    size="sm"
+    colorScheme="teal"
+    bg={BRAND_TEAL}
+    color="white"
+    _hover={{ bg: BRAND_PURPLE }}
+    onClick={onGoClicked}
+    minW="70px"
+    fontWeight="600"
+    px={6}
+  >
+    Go
+  </Button>
+</HStack>
+              </Flex>
+            </VStack>
+          </Box>
+        </Box>
+      </Fade>
+
+      {/* Minimal Progress Indicator */}
       {(isPreviewLoading || isPrintLoading) && (
         <Box
           position="fixed"
-          top="0"
-          left="0"
-          right="0"
-          bottom="0"
-          bg="blackAlpha.600"
-          backdropFilter="blur(8px)"
-          zIndex="overlay"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          animation="fadeIn 0.2s ease-out"
+          top={4}
+          right={4}
+          zIndex="toast"
+          animation="slideIn 0.2s ease-out"
           sx={{
-            "@keyframes fadeIn": {
-              "0%": { opacity: 0 },
-              "100%": { opacity: 1 },
+            "@keyframes slideIn": {
+              "0%": { opacity: 0, transform: "translateY(-20px)" },
+              "100%": { opacity: 1, transform: "translateY(0)" },
             },
           }}
         >
           <Box
             bg={surfaceBg}
-            p={10}
-            rounded="3xl"
-            shadow="2xl"
-            minW="380px"
-            maxW="420px"
-            mx={4}
+            p={4}
+            rounded="lg"
+            shadow="lg"
+            minW="200px"
             border="1px solid"
-            borderColor={colorMode === "light" ? "blue.100" : "blue.700"}
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: "4px",
-              bgGradient: "linear(to-r, blue.400, purple.500, pink.400)",
-            }}
+            borderColor={colorMode === "light" ? "gray.200" : "gray.600"}
           >
-            <VStack spacing={6}>
-              {/* Enhanced Icon with Gradient Background */}
-              <Box position="relative"></Box>
-
-              {/* Content */}
-              <VStack spacing={3}>
-                <Text
-                  fontSize="xl"
-                  fontWeight="bold"
-                  color={titleColor}
-                  textAlign="center"
-                  letterSpacing="wide"
-                >
-                  {isPreviewLoading
-                    ? "Generating Preview"
-                    : "Preparing Download"}
+            <HStack spacing={3}>
+              <Spinner size="sm" color="blue.500" thickness="2px" />
+              <VStack align="start" spacing={1} flex={1}>
+                <Text fontSize="sm" fontWeight="medium" color={titleColor}>
+                  {isPreviewLoading ? "Preview" : "Download"}
                 </Text>
-
-                {/* Large Percentage Display */}
-                <Text
-                  fontSize="4xl"
-                  fontWeight="black"
-                  bgGradient="linear(45deg, blue.400, purple.500)"
-                  bgClip="text"
-                  textAlign="center"
-                  lineHeight={1}
-                >
+                <Text fontSize="xs" color={mutedTextColor}>
                   {Math.round(loadingProgress)}%
                 </Text>
               </VStack>
-
-              {/* Enhanced Progress Bar */}
-              <Box w="100%" position="relative">
-                <Progress
-                  value={loadingProgress}
-                  size="lg"
-                  hasStripe
-                  isAnimated
-                  rounded="full"
-                  transition="all 0.3s ease"
-                  bg={progressBg}
-                  sx={{
-                    "& > div": {
-                      bgGradient: `linear(to-r, ${BRAND_TEAL}, ${BRAND_PURPLE}, ${BRAND_NAVY})`,
-                    },
-                  }}
-                />
-                <Box
-                  position="absolute"
-                  top={0}
-                  left={0}
-                  right={0}
-                  bottom={0}
-                  rounded="full"
-                  boxShadow="inset 0 1px 2px rgba(0,0,0,0.1)"
-                  pointerEvents="none"
-                />
-              </Box>
-
-              {/* Status Text */}
-              <Text
-                fontSize="sm"
-                color={mutedTextColor}
-                textAlign="center"
-                fontWeight="medium"
-              >
-                Please wait while we process your request
-              </Text>
-            </VStack>
+            </HStack>
+            <Progress
+              value={loadingProgress}
+              size="xs"
+              mt={2}
+              rounded="full"
+              colorScheme="blue"
+            />
           </Box>
         </Box>
       )}
@@ -1464,22 +1667,61 @@ export default function Dashboard() {
           </Text>
         </Flex>
       ) : currentPageData.length === 0 ? (
-        <Box py={12} textAlign="center">
-          <Image
-            src="/no_data_bg_img-removebg-preview.png"
-            alt="No Data"
-            boxSize="auto"
-            mx="auto"
-            mb={4}
-            opacity={0.7}
-          />
-          <Text fontSize="lg" fontWeight="medium" color="gray.600">
-            No Records Found
-          </Text>
-          <Text fontSize="sm" color="gray.500">
-            Try adjusting filters or add a new entry
-          </Text>
-        </Box>
+        <Fade in={currentPageData.length === 0}>
+          <Box
+            py={16}
+            px={6}
+            textAlign="center"
+            bg={surfaceBg}
+            rounded="xl"
+            border="1px solid"
+            borderColor={filterBorderColor}
+          >
+            <Image
+              src="/no_data_bg_img-removebg-preview.png"
+              alt="No Data"
+              boxSize="auto"
+              maxW="240px"
+              mx="auto"
+              mb={6}
+              opacity={0.6}
+            />
+            <Text fontSize="xl" fontWeight="600" color={titleColor} mb={2}>
+              No Records Found
+            </Text>
+            <Text fontSize="md" color={mutedTextColor} mb={4}>
+              {from || to || searchTerm
+                ? "No results match your current filters"
+                : "No material documents available"}
+            </Text>
+            <VStack
+              spacing={2}
+              align="center"
+              color={mutedTextColor}
+              fontSize="sm"
+            >
+              <Text>• Try adjusting your date range</Text>
+              <Text>• Clear search filters and try again</Text>
+              <Text>• Check if material documents exist for this period</Text>
+            </VStack>
+            {(from || to || searchTerm) && (
+              <Button
+                mt={6}
+                size="sm"
+                variant="outline"
+                leftIcon={<Undo size={14} />}
+                onClick={() => {
+                  setSearchTerm("");
+                  setFrom("");
+                  setTo("");
+                  setCurrentPage(1);
+                }}
+              >
+                Clear All Filters
+              </Button>
+            )}
+          </Box>
+        </Fade>
       ) : (
         <>
           <Box
@@ -1491,97 +1733,95 @@ export default function Dashboard() {
             overflowX="auto"
           >
             {tableLoading ? (
-              <Flex
-                direction="column"
-                align="center"
-                justify="center"
-                mt={10}
-                gap={4}
-              >
-                <Box
-                  boxSize="40px"
-                  rounded="2xl"
-                  bg={colorMode === "light" ? "purple.500" : "white"}
-                  animation={`${pulseRotate} 0.8s infinite linear`}
-                  shadow="md"
-                />
-                <Text
-                  fontSize="lg"
-                  fontWeight="medium"
-                  color={colorMode === "light" ? "gray.600" : "white"}
-                >
-                  Rendering large table, please wait...
-                </Text>
-              </Flex>
+              <Fade in={tableLoading}>
+                <VStack spacing={3} p={4}>
+                  {/* Compact Table Skeleton */}
+                  <Skeleton height="36px" rounded="md" />
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <HStack key={i} spacing={3} w="100%">
+                      <Skeleton height="14px" width="24px" />
+                      <Skeleton height="14px" flex={1} />
+                      <Skeleton height="14px" flex={1} />
+                      <Skeleton height="14px" flex={1} />
+                      <Skeleton height="14px" width="70px" />
+                      <Skeleton height="14px" width="60px" />
+                    </HStack>
+                  ))}
+                </VStack>
+              </Fade>
             ) : (
-              <InvoiceTable
-                data={currentPageData}
-                selectedIDs={selectedIDs}
-                onSelect={setSelectedIDs}
-                onPreview={(ids) =>
-                  Array.isArray(ids)
-                    ? handleBulkPreview(ids)
-                    : handlePreview(ids)
-                }
-                onPrint={(ids) =>
-                  Array.isArray(ids) ? handleBulkPrint(ids) : handlePrint(ids)
-                }
-                isPreviewLoading={isPreviewLoading}
-                onDoubleClickRow={handlePreview}
-                isPrintLoading={isPrintLoading}
-                loadingProgress={loadingProgress}
-                allSelected={
-                  selectedIDs.length === currentPageData.length &&
-                  currentPageData.length > 0
-                }
-                totalRows={currentPageData.length}
-              />
+              <Fade in={!tableLoading}>
+                <InvoiceTable
+                  data={currentPageData}
+                  selectedIDs={selectedIDs}
+                  onSelect={setSelectedIDs}
+                  onPreview={(ids) =>
+                    Array.isArray(ids)
+                      ? handleBulkPreview(ids)
+                      : handlePreview(ids)
+                  }
+                  onPrint={(ids) =>
+                    Array.isArray(ids) ? handleBulkPrint(ids) : handlePrint(ids)
+                  }
+                  isPreviewLoading={isPreviewLoading}
+                  onDoubleClickRow={handlePreview}
+                  isPrintLoading={isPrintLoading}
+                  loadingProgress={loadingProgress}
+                  allSelected={
+                    selectedIDs.length === currentPageData.length &&
+                    currentPageData.length > 0
+                  }
+                  totalRows={currentPageData.length}
+                />
+              </Fade>
             )}
           </Box>
-          <HStack mt={4} justify="space-between">
-            <HStack>
-              <Text>Rows per page:</Text>
-              <Select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setCurrentPage(1);
-                  setRowsPerPage(e.target.value);
-                }}
-                width="80px"
-                size="sm"
-              >
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="300">300</option>
+          <Fade in={!tableLoading && !loading}>
+            <HStack mt={4} justify="space-between">
+              <HStack>
+                <Text>Rows per page:</Text>
+                <Select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setRowsPerPage(e.target.value);
+                  }}
+                  width="80px"
+                  size="sm"
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="300">300</option>
 
-                <option value="all">All</option>
-              </Select>
-            </HStack>
+                  <option value="all">All</option>
+                </Select>
+              </HStack>
 
-            <HStack>
-              <Button
-                isDisabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                size="sm"
-              >
-                Previous
-              </Button>
-              <Text>
-                Page {currentPage} / {totalPages}
-              </Text>
-              <Button
-                isDisabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                size="sm"
-              >
-                Next
-              </Button>
+              <HStack>
+                <Button
+                  isDisabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  size="sm"
+                >
+                  Previous
+                </Button>
+                <Text>
+                  Page {currentPage} / {totalPages}
+                </Text>
+                <Button
+                  isDisabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  size="sm"
+                >
+                  Next
+                </Button>
+              </HStack>
             </HStack>
-          </HStack>
+          </Fade>
         </>
       )}
       {/* Right Sidebar Preview Drawer */}

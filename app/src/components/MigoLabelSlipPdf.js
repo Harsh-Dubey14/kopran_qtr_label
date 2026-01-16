@@ -9,38 +9,56 @@ import {
 } from "@react-pdf/renderer";
 
 /* =========================================================
-   STYLES — SINGLE SOURCE OF TRUTH
+   CONSTANTS
+========================================================= */
+const PAGE = 283.46; // 10 cm
+const SAFE_MARGIN = 6;
+const FORMAT_HEIGHT = 14;
+
+/* =========================================================
+   STYLES
 ========================================================= */
 const styles = StyleSheet.create({
   page: {
-    fontSize: 9,
-    fontFamily: "Helvetica",
-    lineHeight: 1.1,
+    width: PAGE,
+    height: PAGE,
+    padding: 0, // 🔥 IMPORTANT: NO PAGE PADDING
     backgroundColor: "#fff",
-    width: 283.46,
-    height: 283.46,
-    position: "relative",
+    fontFamily: "Helvetica",
+    fontSize: 9,
+    lineHeight: 1.1,
   },
 
+  /* FORMAT NO ABOVE BORDER */
+formatWrapper: {
+  height: FORMAT_HEIGHT,
+  alignItems: "center",
+  justifyContent: "flex-end", // ⬇️ push text down
+  marginBottom: -3,          // ⬇️ bring text close to border
+},
+formatText: {
+  fontSize: 7,
+  fontWeight: "bold",
+},
+  /* BORDERED AREA */
   borderBox: {
-    width: 273.6,
-    height: 267,
+    margin: SAFE_MARGIN,
+    width: PAGE - SAFE_MARGIN * 2,
+    height: PAGE - SAFE_MARGIN * 2 - FORMAT_HEIGHT,
     borderWidth: 1,
     borderColor: "#000",
     padding: 6,
-    marginTop: 14,
-    alignSelf: "center",
     position: "relative",
   },
 
-  /* ---------- HEADER ---------- */
+  /* HEADER */
   header: {
     height: 32,
     justifyContent: "center",
   },
   logo: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
   },
   companyWrapper: {
     position: "absolute",
@@ -56,16 +74,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
 
-  formatText: {
-    position: "absolute",
-    top: 6,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 7,
-    fontWeight: "bold",
-  },
-
   separator: {
     borderBottomWidth: 0.8,
     borderBottomColor: "#000",
@@ -74,10 +82,33 @@ const styles = StyleSheet.create({
     marginRight: -6,
   },
 
-  /* ---------- MATERIAL ---------- */
-  materialRow: {
+  /* ROW SYSTEM */
+  row: {
+    flexDirection: "row",
+    marginBottom: 2,
+    alignItems: "center",
+  },
+  halfRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  halfCol: {
+    width: "50%",
     flexDirection: "row",
     alignItems: "center",
+  },
+  label: {
+    width: 55,
+    fontSize: 8,
+    fontWeight: "bold",
+  },
+  value: {
+    flex: 1,
+    fontSize: 9,
+  },
+
+  materialRow: {
+    flexDirection: "row",
     marginBottom: 4,
   },
   materialLabel: {
@@ -88,47 +119,12 @@ const styles = StyleSheet.create({
   materialValue: {
     flex: 1,
     fontSize: 9,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
   },
 
-  /* ---------- ROW SYSTEM ---------- */
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-
-  halfRow: {
-    flexDirection: "row",
-    marginBottom: 2,
-  },
-
-  halfCol: {
-    flexDirection: "row",
-    width: "50%",
-    alignItems: "center",
-  },
-
-  label: {
-    width: 55,
-    fontSize: 8,
-    fontWeight: "bold",
-  },
-
-  value: {
-    flex: 1,
-    fontSize: 9,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-
-  /* ---------- SIGN & FOOTER ---------- */
+  /* SIGN + FOOTER */
   signRow: {
     position: "absolute",
-    bottom: 45,
+    bottom: 36,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -142,6 +138,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
+formatText: {
+  fontSize: 7,
+  fontWeight: "bold",
+},
+
   footer: {
     position: "absolute",
     bottom: 0,
@@ -149,8 +150,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: 22,
     backgroundColor: "#000",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
   footerText: {
     color: "#fff",
@@ -161,49 +162,50 @@ const styles = StyleSheet.create({
 });
 
 /* =========================================================
-   DATA MAPPING
+   DATA MAP
 ========================================================= */
-function mapSapItemToLabel(item) {
-  return {
-    materialName: item.materialName || "N/A",
-    materialCode: item.materialCode || item.Material || "N/A",
-    grn_no: item.grn_no || "N/A",
-    grn_date: item.grn_date || "N/A",
-    grn_QTY: item.grn_Qty || "N/A",
-    batch: item.batchNo || "N/A",
-    mfgDate: item.mfgDate || "N/A",
-    expiryDate: item.expiryDate || "N/A",
-    supplierName: item.supplierName || "N/A",
-    MaterialBaseUnit:item.MaterialBaseUnit || "N/A",
-    Batch_Qty:item.Batch_QTY || " ",
-    dec: item.YY1_AA16_MMIT || " ",
-    ManfNm: item.ManfNm || " ",
-    YY1_AA1_MMI:item.YY1_AA1_MMI || " ",
-     YY1_AA2_MMI:item.YY1_AA2_MMI || " ",
-     grn_item_count : item.grn_item_count || " ",
-     MaterialDocumentItem : item.MaterialDocumentItem || " ",
-  };
-}
+const mapItem = (i) => ({
+  materialName: i.materialName || "N/A",
+  dec: i.YY1_AA16_MMIT || "",
+  materialCode: i.materialCode || i.Material || "N/A",
+  grn_no: i.grn_no || "N/A",
+  grn_date: i.grn_date || "N/A",
+  grn_QTY: i.grn_Qty || "",
+  baseUnit: i.MaterialBaseUnit || "",
+  batch: i.batchNo || "N/A",
+  batchQty: i.Batch_QTY || "",
+  container: `${i.MaterialDocumentItem || ""}/${i.grn_item_count || ""}`,
+  mfgDate: i.mfgDate || "",
+  expDate: i.expiryDate || "",
+  mfgBy: i.ManfNm || "",
+  supplier: i.supplierName || "",
+});
 
 /* =========================================================
    PDF COMPONENT
 ========================================================= */
 const MigoLabelSlipPdf = ({ data = [] }) => {
-  const items = useMemo(
-    () => data.map((item) => mapSapItemToLabel(item)),
-    [data]
-  );
+  const items = useMemo(() => data.map(mapItem), [data]);
 
   return (
     <Document>
-      {items.map((mapped, idx) => (
-        <Page key={idx} size={{ width: 288, height: 288 }} style={styles.page}>
-          <Text style={styles.formatText}>FORMAT NO:MWH001-F02-18</Text>
+      {items.map((m, idx) => (
+        <Page key={idx} size={{ width: PAGE, height: PAGE }} style={styles.page}>
 
+          {/* FORMAT NO ABOVE BORDER */}
+          <View style={styles.formatWrapper}>
+            <Text style={styles.formatText}>
+              FORMAT NO : MWH001-F02-18
+            </Text>
+          </View>
+
+          {/* BORDER */}
           <View style={styles.borderBox}>
+            {/* FORMAT NO ON BORDER */}
+
             {/* HEADER */}
             <View style={styles.header}>
-              <Image style={styles.logo} src="/kopran_logo.png" />
+              <Image src="/kopran_logo.png" style={styles.logo} />
               <View style={styles.companyWrapper}>
                 <Text style={styles.companyName}>
                   KOPRAN RESEARCH LABORATORIES LTD.
@@ -214,104 +216,82 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
 
             <View style={styles.separator} />
 
-            {/* MATERIAL */}
+            {/* CONTENT */}
             <View style={styles.materialRow}>
               <Text style={styles.materialLabel}>Material</Text>
-              <Text style={styles.materialValue} wrap={false}>
-                : {mapped.materialName} ( {mapped.dec})
+              <Text style={styles.materialValue}>
+                : {m.materialName} ({m.dec})
               </Text>
             </View>
 
-            {/* SINGLE ROWS */}
             <View style={styles.row}>
-              <Text style={styles.label}>Item code No</Text>
-              <Text style={styles.value} wrap={false}>
-                : {mapped.materialCode}
-              </Text>
+              <Text style={styles.label}>Item Code</Text>
+              <Text style={styles.value}>: {m.materialCode}</Text>
             </View>
 
-            {/* DOUBLE ROWS */}
             <View style={styles.halfRow}>
               <View style={styles.halfCol}>
                 <Text style={styles.label}>GRN No</Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.grn_no}
-                </Text>
+                <Text style={styles.value}>: {m.grn_no}</Text>
               </View>
               <View style={styles.halfCol}>
                 <Text style={styles.label}>GRN Dt</Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.grn_date}
-                </Text>
+                <Text style={styles.value}>: {m.grn_date}</Text>
               </View>
-            </View>
-
-              <View style={styles.halfRow}>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>GRN Qty</Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.grn_QTY}
-                </Text>
-              </View>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{mapped.MaterialBaseUnit}</Text>
-              </View>
-            </View>
-
-
-            <View style={styles.row}>
-              <Text style={styles.label}>Batch No</Text>
-              <Text style={styles.value} wrap={false}>
-                : {mapped.batch}
-              </Text>
-            </View>
-             <View style={styles.halfRow}>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>Batch Qty</Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.Batch_Qty}
-                </Text>
-              </View>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{mapped.MaterialBaseUnit}</Text>
-              </View>
-            </View>
-
-                <View style={styles.row}>
-              <Text style={styles.label}>Container No</Text>
-              <Text style={styles.value} wrap={false}>
-                : {mapped.MaterialDocumentItem}/{mapped.grn_item_count}
-              </Text>
             </View>
 
             <View style={styles.halfRow}>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>Mfg.Dt </Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.mfgDate}
-                </Text>
+                <Text style={styles.label}>GRN Qty</Text>
+                <Text style={styles.value}>: {m.grn_QTY}</Text>
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>Exp./Retest Dt </Text>
-                <Text style={styles.value} wrap={false}>
-                  : {mapped.expiryDate}
-                </Text>
+                <Text style={styles.label}>{m.baseUnit}</Text>
               </View>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.label}>Mfg.By </Text>
-              <Text style={styles.value} wrap={false}>: {mapped.ManfNm}</Text>
+              <Text style={styles.label}>Batch No</Text>
+              <Text style={styles.value}>: {m.batch}</Text>
+            </View>
+
+            <View style={styles.halfRow}>
+              <View style={styles.halfCol}>
+                <Text style={styles.label}>Batch Qty</Text>
+                <Text style={styles.value}>: {m.batchQty}</Text>
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.label}>{m.baseUnit}</Text>
+              </View>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.label}>Supplied</Text>
-              <Text style={styles.value} wrap={false}>
-                : {mapped.supplierName}
-              </Text>
+              <Text style={styles.label}>Container</Text>
+              <Text style={styles.value}>: {m.container}</Text>
             </View>
 
-            {/* SIGNATURE */}
+            <View style={styles.halfRow}>
+              <View style={styles.halfCol}>
+                <Text style={styles.label}>Mfg Dt</Text>
+                <Text style={styles.value}>: {m.mfgDate}</Text>
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.label}>Exp./Retest Dt</Text>
+                <Text style={styles.value}>: {m.expDate}</Text>
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Mfg By</Text>
+              <Text style={styles.value}>: {m.mfgBy}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Supplier</Text>
+              <Text style={styles.value}>: {m.supplier}</Text>
+            </View>
+
+            {/* SIGN */}
             <View style={styles.signRow}>
               <View style={styles.signCol}>
                 <Text style={styles.signText}>Prepared By</Text>
@@ -325,6 +305,7 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
             <View style={styles.footer}>
               <Text style={styles.footerText}>QUARANTINE</Text>
             </View>
+
           </View>
         </Page>
       ))}
