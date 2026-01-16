@@ -1,4 +1,4 @@
-cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+cf target -o "Indore_Composite P. Ltd." -s PRODUCTION
 
 4. change # 🛡️ Step 5: Apply quality-specific configurations according to env and then copy paste the below in terminal 
 
