@@ -1,5 +1,5 @@
 _schema-version: "3.3"
-ID: invoicing-capm
+ID: kopran-qtr-label-dev
 version: 1.0.0
 description: "CAP + React Fullstack App"
 
@@ -22,8 +22,8 @@ modules:
       buildpack: nodejs_buildpack
       memory: 512M
       env:
-        API_USER: "mbk@meritpolymers.com"
-        API_PASS: "Mitesh@2024"
+        API_USER: "BAS_USER"
+        API_PASS: "2y9Xib2zi{qvEbe3Cwd35SdF+UByL5TD~E>oN7Bx"
     build-parameters:
       builder: custom
       commands:
@@ -36,7 +36,7 @@ modules:
     requires:
       - name: destination-backend
       - name: html5-apps-repo-runtime
-      - name: xsuaa-invoicing-capm-clean
+      - name: xsuaa-kopran-qtr-label-dev
 
   - name: frontend
     type: html5
@@ -79,7 +79,7 @@ modules:
           forwardAuthToken: true
       - name: html5-apps-repo-host
       - name: destination-backend
-      - name: xsuaa-invoicing-capm-clean
+      - name: xsuaa-kopran-qtr-label-dev
       - name: srv-api-inv
         group: destinations
         properties:
@@ -107,15 +107,15 @@ resources:
       service-plan: app-host
 
   # Optional security service
-  - name: xsuaa-invoicing-capm-clean
+  - name: xsuaa-kopran-qtr-label-dev
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "na_95c2227d_c2e2_4f99_bc6a_5e718ed6aa79"
+        xsappname: "kopran-qtr-label-dev-auth"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://merit-polymers-pvt-ltd--meritpolymerssubdomain1-dev-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+            - "https://invoicing-capm-dev-approuter.cfapps.eu10-005.hana.ondemand.com/**"

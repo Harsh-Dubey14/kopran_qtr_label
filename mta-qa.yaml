@@ -1,5 +1,5 @@
 _schema-version: "3.3"
-ID: invoicing-capm-qa
+ID: kopran-qtr-label-qa
 version: 1.0.0
 description: "CAP + React Fullstack App - Quality Environment"
 
@@ -36,7 +36,7 @@ modules:
     requires:
       - name: destination-backend
       - name: html5-apps-repo-runtime
-      - name: xsuaa-invoicing-capm-quality
+      - name: xsuaa-kopran-qtr-label-quality
 
   - name: frontend
     type: html5
@@ -79,7 +79,7 @@ modules:
           forwardAuthToken: true
       - name: html5-apps-repo-host
       - name: destination-backend
-      - name: xsuaa-invoicing-capm-quality
+      - name: xsuaa-kopran-qtr-label-quality
       - name: srv-api-inv
         group: destinations
         properties:
@@ -107,14 +107,14 @@ resources:
       service-plan: app-host
 
   # Optional security service
-  - name: xsuaa-invoicing-capm-quality
+  - name: xsuaa-kopran-qtr-label-quality
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "invoicing-capm-quality-auth"
+        xsappname: "kopran-qtr-label-quality-auth"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
