@@ -1,4 +1,4 @@
-cf target -o "Indore_Composite P. Ltd." -s PRODUCTION
+cf target -o "Kopran Ltd_kopran-ltd-subaccount-t506bu9i" -s PRD
 
 4. change # 🛡️ Step 5: Apply quality-specific configurations according to env and then copy paste the below in terminal 
 
