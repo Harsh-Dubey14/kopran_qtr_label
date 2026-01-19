@@ -62,7 +62,7 @@ modules:
             - build/**
           name: frontend
 
-  - name: approuter
+  - name: kopran-qtr-label-qa-approuter
     type: nodejs
     path: approuter
     parameters:
