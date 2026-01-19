@@ -118,4 +118,4 @@ resources:
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://indore-composite-p--ltd--quality-approuter.cfapps.eu10-005.hana.ondemand.com/index.html"
+            - "https://kopran-qtr-label-qa-approuter.cfapps.eu10-005.hana.ondemand.com/**"
