@@ -30,16 +30,16 @@ const styles = StyleSheet.create({
   },
 
   /* FORMAT NO ABOVE BORDER */
-formatWrapper: {
-  height: FORMAT_HEIGHT,
-  alignItems: "center",
-  justifyContent: "flex-end", // ⬇️ push text down
-  marginBottom: -3,          // ⬇️ bring text close to border
-},
-formatText: {
-  fontSize: 7,
-  fontWeight: "bold",
-},
+  formatWrapper: {
+    height: FORMAT_HEIGHT,
+    alignItems: "center",
+    justifyContent: "flex-end", // ⬇️ push text down
+    marginBottom: -3, // ⬇️ bring text close to border
+  },
+  formatText: {
+    fontSize: 7,
+    fontWeight: "bold",
+  },
   /* BORDERED AREA */
   borderBox: {
     margin: SAFE_MARGIN,
@@ -106,7 +106,10 @@ formatText: {
     flex: 1,
     fontSize: 9,
   },
-
+  value1: {
+    flex: 1,
+    fontSize: 8,
+  },
   materialRow: {
     flexDirection: "row",
     marginBottom: 4,
@@ -138,10 +141,10 @@ formatText: {
     fontWeight: "bold",
   },
 
-formatText: {
-  fontSize: 7,
-  fontWeight: "bold",
-},
+  formatText: {
+    fontSize: 7,
+    fontWeight: "bold",
+  },
 
   footer: {
     position: "absolute",
@@ -166,7 +169,7 @@ formatText: {
 ========================================================= */
 const mapItem = (i) => ({
   materialName: i.materialName || "N/A",
-  dec: i.YY1_AA16_MMIT || "",
+  dec: i.dec || "",
   materialCode: i.materialCode || i.Material || "N/A",
   grn_no: i.grn_no || "N/A",
   grn_date: i.grn_date || "N/A",
@@ -174,11 +177,16 @@ const mapItem = (i) => ({
   baseUnit: i.MaterialBaseUnit || "",
   batch: i.batchNo || "N/A",
   batchQty: i.Batch_QTY || "",
-  container: `${i.MaterialDocumentItem || ""}/${i.grn_item_count || ""}`,
+  // mdi: i.MaterialDocumentItem,
+  // grn: i.grn_item_count,
+  container: i.container || "",
+
+  // container: `${i.MaterialDocumentItem || ""}/${i.grn_item_count || ""}`,
   mfgDate: i.mfgDate || "",
   expDate: i.expiryDate || "",
   mfgBy: i.ManfNm || "",
   supplier: i.supplierName || "",
+  PersonFullName: i.PersonFullName || " ",
 });
 
 /* =========================================================
@@ -190,13 +198,14 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
   return (
     <Document>
       {items.map((m, idx) => (
-        <Page key={idx} size={{ width: PAGE, height: PAGE }} style={styles.page}>
-
+        <Page
+          key={idx}
+          size={{ width: PAGE, height: PAGE }}
+          style={styles.page}
+        >
           {/* FORMAT NO ABOVE BORDER */}
           <View style={styles.formatWrapper}>
-            <Text style={styles.formatText}>
-              FORMAT NO : MWH001-F02-18
-            </Text>
+            <Text style={styles.formatText}>FORMAT NO : MWH001-F02-18</Text>
           </View>
 
           {/* BORDER */}
@@ -220,7 +229,7 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
             <View style={styles.materialRow}>
               <Text style={styles.materialLabel}>Material</Text>
               <Text style={styles.materialValue}>
-                : {m.materialName} ({m.dec})
+                : {m.materialName} {m.dec}
               </Text>
             </View>
 
@@ -294,7 +303,9 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
             {/* SIGN */}
             <View style={styles.signRow}>
               <View style={styles.signCol}>
+                     <Text style={styles.value1}>{m.PersonFullName}</Text>
                 <Text style={styles.signText}>Prepared By</Text>
+           
               </View>
               <View style={styles.signCol}>
                 <Text style={styles.signText}>Checked By</Text>
@@ -305,7 +316,6 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
             <View style={styles.footer}>
               <Text style={styles.footerText}>QUARANTINE</Text>
             </View>
-
           </View>
         </Page>
       ))}

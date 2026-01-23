@@ -5,20 +5,22 @@ const { auth, baseURL } = require("../../utils/constants");
 const productCache = new Map(); // key: `${material}-${plant}` -> product description object
 const supplierCache = new Map(); // key: supplierCode -> supplier data
 const headerCache = new Map(); // key: `${doc}-${year}` -> header object or parsed XML
-const manufacturerCache = new Map(); 
-// key: ManfNo -> ManfoDtls record
+const manufacturerCache = new Map();
+const businessUserCache = new Map();
+// key: MaterialDocument -> business user record
 
+// key: ManfNo -> ManfoDtls record
 
 // Function to parse Atom XML response for header
 function parseHeaderXML(xmlString) {
   const postingDateMatch = xmlString.match(
-    /<d:PostingDate>(.*?)<\/d:PostingDate>/
+    /<d:PostingDate>(.*?)<\/d:PostingDate>/,
   );
   const manufactureDateMatch = xmlString.match(
-    /<d:ManufactureDate>(.*?)<\/d:ManufactureDate>/
+    /<d:ManufactureDate>(.*?)<\/d:ManufactureDate>/,
   );
   const expiryDateMatch = xmlString.match(
-    /<d:ShelfLifeExpirationDate>(.*?)<\/d:ShelfLifeExpirationDate>/
+    /<d:ShelfLifeExpirationDate>(.*?)<\/d:ShelfLifeExpirationDate>/,
   );
   return {
     PostingDate: postingDateMatch ? postingDateMatch[1] : "",
@@ -101,54 +103,50 @@ module.exports = (srv) => {
     // - MaterialDocuments: [ '123', '456' ] (legacy)
     // - MaterialDocumentItems: [ { MaterialDocument, MaterialDocumentItem }, ... ]
     // - composite strings posted by client via api client: [ '123-10', ... ]
-const {
-  MaterialDocuments,
-  MaterialDocumentItems,
-  MaterialDocument,
-  MaterialDocumentYear,
-} = req.data || {};
+    const {
+      MaterialDocuments,
+      MaterialDocumentItems,
+      MaterialDocument,
+      MaterialDocumentYear,
+    } = req.data || {};
 
-let docItems = [];
+    let docItems = [];
 
-// ✅ NEW: Single document + year support
-if (MaterialDocument && MaterialDocumentYear) {
-  docItems = [
-    {
-      doc: String(MaterialDocument),
-      year: String(MaterialDocumentYear),
-      item: null,
-    },
-  ];
-}
+    // ✅ NEW: Single document + year support
+    if (MaterialDocument && MaterialDocumentYear) {
+      docItems = [
+        {
+          doc: String(MaterialDocument),
+          year: String(MaterialDocumentYear),
+          item: null,
+        },
+      ];
+    }
 
-// Existing: multiple items
-else if (
-  Array.isArray(MaterialDocumentItems) &&
-  MaterialDocumentItems.length > 0
-) {
-  docItems = MaterialDocumentItems.map((it) => ({
-    doc: String(it.MaterialDocument || it.materialDocument || ""),
-    year: String(it.MaterialDocumentYear || it.materialDocumentYear || ""),
-    item: String(it.MaterialDocumentItem || it.materialDocumentItem || ""),
-  }));
-}
+    // Existing: multiple items
+    else if (
+      Array.isArray(MaterialDocumentItems) &&
+      MaterialDocumentItems.length > 0
+    ) {
+      docItems = MaterialDocumentItems.map((it) => ({
+        doc: String(it.MaterialDocument || it.materialDocument || ""),
+        year: String(it.MaterialDocumentYear || it.materialDocumentYear || ""),
+        item: String(it.MaterialDocumentItem || it.materialDocumentItem || ""),
+      }));
+    }
 
-// Existing: legacy documents only
-else if (
-  Array.isArray(MaterialDocuments) &&
-  MaterialDocuments.length > 0
-) {
-  docItems = MaterialDocuments.map((d) => ({
-    doc: String(d),
-    item: null,
-  }));
-} else {
-  return req.error(
-    400,
-    "Provide MaterialDocument + MaterialDocumentYear OR MaterialDocumentItems OR MaterialDocuments"
-  );
-}
-
+    // Existing: legacy documents only
+    else if (Array.isArray(MaterialDocuments) && MaterialDocuments.length > 0) {
+      docItems = MaterialDocuments.map((d) => ({
+        doc: String(d),
+        item: null,
+      }));
+    } else {
+      return req.error(
+        400,
+        "Provide MaterialDocument + MaterialDocumentYear OR MaterialDocumentItems OR MaterialDocuments",
+      );
+    }
 
     try {
       // Timing instrumentation for debugging performance
@@ -160,17 +158,17 @@ else if (
       // Build batches of filters; when item is present, filter by both doc and item
       for (let i = 0; i < docItems.length; i += batchSize) {
         const batch = docItems.slice(i, i + batchSize);
-       const docFilters = batch
-  .map(({ doc, year, item }) => {
-    if (item && item !== "null" && item !== "undefined") {
-      return `(MaterialDocument eq '${doc}' and MaterialDocumentItem eq '${item}')`;
-    }
-    if (year) {
-      return `(MaterialDocument eq '${doc}' and MaterialDocumentYear eq '${year}')`;
-    }
-    return `MaterialDocument eq '${doc}'`;
-  })
-  .join(" or ");
+        const docFilters = batch
+          .map(({ doc, year, item }) => {
+            if (item && item !== "null" && item !== "undefined") {
+              return `(MaterialDocument eq '${doc}' and MaterialDocumentItem eq '${item}')`;
+            }
+            if (year) {
+              return `(MaterialDocument eq '${doc}' and MaterialDocumentYear eq '${year}')`;
+            }
+            return `MaterialDocument eq '${doc}'`;
+          })
+          .join(" or ");
 
         const endpoint = `sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?$format=json&$filter=(${docFilters})`;
         const fullURL = new URL(endpoint, baseURLConfig).toString();
@@ -197,12 +195,12 @@ else if (
           items
             .filter((item) => item.Plant && item.Plant.trim())
             .map((item) => `${item.Material}-${item.Plant}`)
-            .filter(Boolean)
+            .filter(Boolean),
         ),
       ];
 
       const itemsWithoutPlant = items.filter(
-        (item) => !item.Plant || !item.Plant.trim()
+        (item) => !item.Plant || !item.Plant.trim(),
       );
       if (itemsWithoutPlant.length > 0) {
       }
@@ -211,7 +209,7 @@ else if (
       const materialDetailsMap = {};
       // Check cache first; only fetch missing product descriptions
       const missingMaterialPlants = uniqueMaterialPlants.filter(
-        (mp) => !productCache.has(mp)
+        (mp) => !productCache.has(mp),
       );
       const concurrency = 50; // higher concurrency to reduce total rounds
       const materialChunks = chunkArray(missingMaterialPlants, concurrency);
@@ -235,11 +233,11 @@ else if (
               console.error(
                 `Failed to fetch product description for ${matPlant}:`,
                 err.response?.status,
-                err.response?.data || err.message
+                err.response?.data || err.message,
               );
               productCache.set(matPlant, {});
             }
-          })
+          }),
         );
       }
       timings.materialsMs = Date.now() - timings.materialsStart;
@@ -256,7 +254,7 @@ else if (
       const supplierDetailsMap = {};
       // Only fetch missing suppliers (use cache)
       const missingSuppliers = uniqueSuppliers.filter(
-        (s) => !supplierCache.has(s)
+        (s) => !supplierCache.has(s),
       );
       const supplierChunks = chunkArray(missingSuppliers, concurrency);
       timings.suppliersStart = Date.now();
@@ -269,7 +267,7 @@ else if (
             }
             try {
               const supplierPath = `A_Supplier('${encodeURIComponent(
-                supplierCode
+                supplierCode,
               )}')`;
               const url = `${baseURLConfig}/sap/opu/odata/sap/API_BUSINESS_PARTNER/${supplierPath}`;
               const params = { $format: "json", $select: "SupplierName" };
@@ -279,11 +277,11 @@ else if (
               console.error(
                 `Failed to fetch supplier details for ${supplierCode}:`,
                 err.response?.status,
-                err.response?.data || err.message
+                err.response?.data || err.message,
               );
               supplierCache.set(supplierCode, {});
             }
-          })
+          }),
         );
       }
       timings.suppliersMs = Date.now() - timings.suppliersStart;
@@ -296,19 +294,19 @@ else if (
         ...new Map(
           items
             .filter(
-              (item) => item.MaterialDocument && item.MaterialDocumentYear
+              (item) => item.MaterialDocument && item.MaterialDocumentYear,
             )
             .map((item) => [
               `${item.MaterialDocument}-${item.MaterialDocumentYear}`,
               { doc: item.MaterialDocument, year: item.MaterialDocumentYear },
-            ])
+            ]),
         ).values(),
       ];
       // Fetch material document header details for each unique document
       const headerDetailsMap = {};
       // Only fetch missing headers
       const missingDocYears = uniqueDocYears.filter(
-        ({ doc, year }) => !headerCache.has(`${doc}-${year}`)
+        ({ doc, year }) => !headerCache.has(`${doc}-${year}`),
       );
       // Use OData $batch to reduce HTTP overhead for header fetches
       const headerBatchSize = 50;
@@ -322,15 +320,15 @@ else if (
           const getPaths = batch.map(
             ({ doc, year }) =>
               `/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentHeader(MaterialDocument='${encodeURIComponent(
-                doc
+                doc,
               )}',MaterialDocumentYear='${encodeURIComponent(
-                year
-              )}')?$format=json`
+                year,
+              )}')?$format=json`,
           );
           const batchBody = buildBatchBody(getPaths, boundary);
           const batchUrl = new URL(
             `/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/$batch`,
-            baseURLConfig
+            baseURLConfig,
           ).toString();
           const batchHeaders = Object.assign({}, headers, {
             "Content-Type": `multipart/mixed; boundary=${boundary}`,
@@ -367,7 +365,7 @@ else if (
               console.error(
                 `Failed to fetch header details for ${doc}-${year}:`,
                 err2.response?.status,
-                err2.response?.data || err2.message
+                err2.response?.data || err2.message,
               );
               headerCache.set(`${doc}-${year}`, {});
             }
@@ -386,7 +384,7 @@ else if (
         ...new Set(itemsWithoutPlant.map((it) => it.Material).filter(Boolean)),
       ];
       const missingMaterialsOnly = uniqueMaterialsWithoutPlant.filter(
-        (m) => !productCache.has(m)
+        (m) => !productCache.has(m),
       );
       const materialOnlyChunks = chunkArray(missingMaterialsOnly, concurrency);
       for (const chunk of materialOnlyChunks) {
@@ -405,136 +403,189 @@ else if (
               console.error(
                 `Failed to fetch product description for material-only ${material}:`,
                 err.response?.status,
-                err.response?.data || err.message
+                err.response?.data || err.message,
               );
               productCache.set(material, {});
             }
-          })
+          }),
         );
       }
 
-const uniquePOItems = [
-  ...new Map(
-    items
-      .filter(i => i.PurchaseOrder && i.PurchaseOrderItem)
-      .map(i => [
-        `${i.PurchaseOrder}-${i.PurchaseOrderItem}`,
-        {
-          po: i.PurchaseOrder,
-          poItem: i.PurchaseOrderItem,
+      const uniquePOItems = [
+        ...new Map(
+          items
+            .filter((i) => i.PurchaseOrder && i.PurchaseOrderItem)
+            .map((i) => [
+              `${i.PurchaseOrder}-${i.PurchaseOrderItem}`,
+              {
+                po: i.PurchaseOrder,
+                poItem: i.PurchaseOrderItem,
+              },
+            ]),
+        ).values(),
+      ];
+      const missingPOItems = uniquePOItems.filter(
+        ({ po, poItem }) => !purchaseOrderHeaderCache.has(`${po}-${poItem}`),
+      );
+
+      const poBatchSize = 50;
+      const poBatches = chunkArray(missingPOItems, poBatchSize);
+
+      for (const batch of poBatches) {
+        try {
+          const boundary = `batch_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
+
+          const getPaths = batch.map(
+            ({ po, poItem }) =>
+              `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/` +
+              `A_PurchaseOrderItem(` +
+              `PurchaseOrder='${encodeURIComponent(po)}',` +
+              `PurchaseOrderItem='${encodeURIComponent(poItem)}'` +
+              `)?$format=json`,
+          );
+
+          const batchBody = buildBatchBody(getPaths, boundary);
+
+          const batchUrl = new URL(
+            `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/$batch`,
+            baseURLConfig,
+          ).toString();
+
+          const batchHeaders = {
+            ...headers,
+            "Content-Type": `multipart/mixed; boundary=${boundary}`,
+            Accept: "multipart/mixed",
+          };
+
+          const res = await axios.post(batchUrl, batchBody, {
+            headers: batchHeaders,
+            responseType: "text",
+          });
+
+          const parts = parseBatchResponse(res.data, boundary);
+
+          batch.forEach(({ po, poItem }, index) => {
+            purchaseOrderHeaderCache.set(
+              `${po}-${poItem}`,
+              parts[index]?.d || {},
+            );
+          });
+        } catch (err) {
+          // 🔁 Fallback: individual GET
+          for (const { po, poItem } of batch) {
+            try {
+              const url =
+                `${baseURLConfig}/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/` +
+                `A_PurchaseOrderItem(` +
+                `PurchaseOrder='${po}',PurchaseOrderItem='${poItem}'` +
+                `)`;
+
+              const res = await axios.get(url, { headers });
+
+              purchaseOrderHeaderCache.set(
+                `${po}-${poItem}`,
+                res.data?.d || {},
+              );
+            } catch (err2) {
+              console.error(`Failed PO item ${po}-${poItem}`, err2.message);
+              purchaseOrderHeaderCache.set(`${po}-${poItem}`, {});
+            }
+          }
         }
-      ])
-  ).values()
-];
-const missingPOItems = uniquePOItems.filter(
-  ({ po, poItem }) =>
-    !purchaseOrderHeaderCache.has(`${po}-${poItem}`)
-);
-
-
-const poBatchSize = 50;
-const poBatches = chunkArray(missingPOItems, poBatchSize);
-
-for (const batch of poBatches) {
-  try {
-    const boundary = `batch_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
-    const getPaths = batch.map(
-      ({ po, poItem }) =>
-        `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/` +
-        `A_PurchaseOrderItem(` +
-        `PurchaseOrder='${encodeURIComponent(po)}',` +
-        `PurchaseOrderItem='${encodeURIComponent(poItem)}'` +
-        `)?$format=json`
-    );
-
-    const batchBody = buildBatchBody(getPaths, boundary);
-
-    const batchUrl = new URL(
-      `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/$batch`,
-      baseURLConfig
-    ).toString();
-
-    const batchHeaders = {
-      ...headers,
-      "Content-Type": `multipart/mixed; boundary=${boundary}`,
-      Accept: "multipart/mixed",
-    };
-
-    const res = await axios.post(batchUrl, batchBody, {
-      headers: batchHeaders,
-      responseType: "text",
-    });
-
-    const parts = parseBatchResponse(res.data, boundary);
-
-    batch.forEach(({ po, poItem }, index) => {
-      purchaseOrderHeaderCache.set(
-        `${po}-${poItem}`,
-        parts[index]?.d || {}
-      );
-    });
-
-  } catch (err) {
-    // 🔁 Fallback: individual GET
-    for (const { po, poItem } of batch) {
-      try {
-        const url =
-          `${baseURLConfig}/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/` +
-          `A_PurchaseOrderItem(` +
-          `PurchaseOrder='${po}',PurchaseOrderItem='${poItem}'` +
-          `)`;
-
-        const res = await axios.get(url, { headers });
-
-        purchaseOrderHeaderCache.set(
-          `${po}-${poItem}`,
-          res.data?.d || {}
-        );
-      } catch (err2) {
-        console.error(`Failed PO item ${po}-${poItem}`, err2.message);
-        purchaseOrderHeaderCache.set(`${po}-${poItem}`, {});
       }
-    }
-  }
-}
-const purchaseOrderDetailsMap = {};
+      const purchaseOrderDetailsMap = {};
 
-uniquePOItems.forEach(({ po, poItem }) => {
-  purchaseOrderDetailsMap[`${po}-${poItem}`] =
-    purchaseOrderHeaderCache.get(`${po}-${poItem}`) || {};
-});
+      uniquePOItems.forEach(({ po, poItem }) => {
+        purchaseOrderDetailsMap[`${po}-${poItem}`] =
+          purchaseOrderHeaderCache.get(`${po}-${poItem}`) || {};
+      });
 
-// ===============================
-// LOAD MANUFACTURER MASTER (ONCE)
-// ===============================
-if (!manufacturerCache.has("__ALL__")) {
-  try {
-    const url =
-      `${baseURLConfig}/sap/opu/odata/sap/ZSB_MANUF_APP/ManfoDtls?$format=json`;
+      // ===============================
+      // LOAD MANUFACTURER MASTER (ONCE)
+      // ===============================
+      if (!manufacturerCache.has("__ALL__")) {
+        try {
+          const url = `${baseURLConfig}/sap/opu/odata/sap/ZSB_MANUF_APP/ManfoDtls?$format=json`;
 
-    const res = await axios.get(url, { headers });
+          const res = await axios.get(url, { headers });
 
-    const results = res.data?.d?.results || [];
+          const results = res.data?.d?.results || [];
 
-    results.forEach(row => {
-      manufacturerCache.set(
-        String(row.ManfNo).trim(),
-        row
+          results.forEach((row) => {
+            manufacturerCache.set(String(row.ManfNo).trim(), row);
+          });
+
+          manufacturerCache.set("__ALL__", true);
+        } catch (err) {
+          console.error("Failed to load ManfoDtls master data", err.message);
+        }
+      }
+
+      const uniqueMaterialDocs = [
+        ...new Set(items.map((i) => i.MaterialDocument).filter(Boolean)),
+      ];
+      const missingDocs = uniqueMaterialDocs.filter(
+        (doc) => !businessUserCache.has(doc),
       );
-    });
 
-    manufacturerCache.set("__ALL__", true);
+      const buBatchSize = 50;
+      const buBatches = chunkArray(missingDocs, buBatchSize);
 
-  } catch (err) {
-    console.error("Failed to load ManfoDtls master data", err.message);
-  }
-}
+      for (const batch of buBatches) {
+        try {
+          const boundary = `batch_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
 
+          const getPaths = batch.map(
+            (doc) =>
+              `/sap/opu/odata4/sap/zsb_bussinee_user/srvd/sap/zsd_bussiness_user/0001/` +
+              `zi_bussinessuer?$filter=MaterialDocument eq '${encodeURIComponent(doc)}'`,
+          );
 
+          const batchBody = buildBatchBody(getPaths, boundary);
 
+          const batchUrl = new URL(
+            `/sap/opu/odata4/sap/zsb_bussinee_user/srvd/sap/zsd_bussiness_user/0001/$batch`,
+            baseURLConfig,
+          ).toString();
+
+          const batchHeaders = {
+            ...headers,
+            "Content-Type": `multipart/mixed; boundary=${boundary}`,
+            Accept: "multipart/mixed",
+          };
+
+          const res = await axios.post(batchUrl, batchBody, {
+            headers: batchHeaders,
+            responseType: "text",
+          });
+
+          const parts = parseBatchResponse(res.data, boundary);
+
+          batch.forEach((doc, index) => {
+            const records = parts[index]?.value || [];
+            businessUserCache.set(doc, records[0] || {});
+          });
+        } catch (err) {
+          // 🔁 fallback: individual calls
+          for (const doc of batch) {
+            try {
+              const url =
+                `${baseURLConfig}/sap/opu/odata4/sap/zsb_bussinee_user/srvd/` +
+                `sap/zsd_bussiness_user/0001/zi_bussinessuer` +
+                `?$filter=MaterialDocument eq '${doc}'`;
+
+              const res = await axios.get(url, { headers });
+              businessUserCache.set(doc, res.data?.value?.[0] || {});
+            } catch (e) {
+              businessUserCache.set(doc, {});
+            }
+          }
+        }
+      }
 
       // Populate materialDetailsMap from cache (both material-plant and material-only keys)
       uniqueMaterialPlants.forEach((mp) => {
@@ -566,71 +617,64 @@ if (!manufacturerCache.has("__ALL__")) {
         const itemB = (b.MaterialDocumentItem || "").toString();
         return itemA.localeCompare(itemB, undefined, { numeric: true });
       });
-const grnItemCountMap = {};
+      const grnItemCountMap = {};
 
       const uniqueGrns = [
-  ...new Map(
-    items.map(item => [
-      `${item.MaterialDocument}-${item.MaterialDocumentYear}`,
-      {
-        doc: item.MaterialDocument,
-        year: item.MaterialDocumentYear
+        ...new Map(
+          items.map((item) => [
+            `${item.MaterialDocument}-${item.MaterialDocumentYear}`,
+            {
+              doc: item.MaterialDocument,
+              year: item.MaterialDocumentYear,
+            },
+          ]),
+        ).values(),
+      ];
+
+      const grnQtyMap = {};
+
+      for (const { doc, year } of uniqueGrns) {
+        try {
+          const url =
+            `${baseURLConfig}/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/` +
+            `A_MaterialDocumentItem?$format=json&` +
+            `$filter=(MaterialDocument eq '${doc}' and MaterialDocumentYear eq '${year}')`;
+
+          const res = await axios.get(url, { headers });
+
+          const allGrnItems = res.data?.d?.results || [];
+
+          grnItemCountMap[`${doc}-${year}`] = allGrnItems.length;
+
+          grnQtyMap[`${doc}-${year}`] = allGrnItems.reduce(
+            (sum, it) => sum + (Number(it.QuantityInBaseUnit) || 0),
+            0,
+          );
+        } catch (err) {
+          console.error(`Failed to calculate GRN total for ${doc}-${year}`);
+          grnQtyMap[`${doc}-${year}`] = 0;
+        }
       }
-    ])
-  ).values()
-];
-
-const grnQtyMap = {};
-
-for (const { doc, year } of uniqueGrns) {
-  try {
-    const url =
-      `${baseURLConfig}/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/` +
-      `A_MaterialDocumentItem?$format=json&` +
-      `$filter=(MaterialDocument eq '${doc}' and MaterialDocumentYear eq '${year}')`;
-
-    const res = await axios.get(url, { headers });
-
-    const allGrnItems = res.data?.d?.results || [];
-
-    grnItemCountMap[`${doc}-${year}`] = allGrnItems.length;
-
-    grnQtyMap[`${doc}-${year}`] = allGrnItems.reduce(
-      (sum, it) => sum + (Number(it.QuantityInBaseUnit) || 0),
-      0
-    );
-  } catch (err) {
-    console.error(`Failed to calculate GRN total for ${doc}-${year}`);
-    grnQtyMap[`${doc}-${year}`] = 0;
-  }
-
-  
-}
-
-
 
       // Map to required fields (use material-only fallback when plant-based description is missing)
       const result = items.map((item) => {
         const headerKey = `${item.MaterialDocument}-${item.MaterialDocumentYear}`;
         const header = headerDetailsMap[headerKey] || {};
 
-const grnKey = `${item.MaterialDocument}-${item.MaterialDocumentYear}`;
+        const grnKey = `${item.MaterialDocument}-${item.MaterialDocumentYear}`;
 
+        const poKey = `${item.PurchaseOrder}-${item.PurchaseOrderItem}`;
+        const poItemData = purchaseOrderDetailsMap[poKey] || {};
+        const manfNo = String(poItemData.YY1_ManufacturerNO1_PDI || "").trim();
 
-const poKey = `${item.PurchaseOrder}-${item.PurchaseOrderItem}`;
-const poItemData = purchaseOrderDetailsMap[poKey] || {};
-const manfNo = String(
-  poItemData.YY1_ManufacturerNO1_PDI || ""
-).trim();
-
-// Lookup from cached Z API data
-const manfData = manufacturerCache.get(manfNo) || {};
-console.log(
-  "PO ITEM CHECK:",
-  poItemData.PurchaseOrder,
-  poItemData.PurchaseOrderItem,
-  poItemData.YY1_ManufacturerNO1_PDI
-);
+        // Lookup from cached Z API data
+        const manfData = manufacturerCache.get(manfNo) || {};
+        console.log(
+          "PO ITEM CHECK:",
+          poItemData.PurchaseOrder,
+          poItemData.PurchaseOrderItem,
+          poItemData.YY1_ManufacturerNO1_PDI,
+        );
         // derive product description (I_ProductDescription -> ProductDescription)
         const productDesc =
           materialDetailsMap[`${item.Material}-${item.Plant}`]
@@ -648,11 +692,11 @@ console.log(
           "";
         const normalizedGross = item.gwt || item.grossWeight || item.GW || "";
         const normalizedTare = item.twt || item.tareWeight || item.TW || "";
+        const businessUser = businessUserCache.get(item.MaterialDocument) || {};
 
         return {
           materialDocument: item.MaterialDocument || "",
           materialDocumentItem: item.MaterialDocumentItem || "",
-     
 
           // b~Material -> RM_Code
           RM_Code: item.Material || "",
@@ -686,15 +730,13 @@ console.log(
           // a~MaterialDocument -> grn_no (prefer header if available, else item)
           grn_no: header?.MaterialDocument || item.MaterialDocument || "",
           // include GRN year for templates that want both number/year
-           grn_date:formatDate(header?.PostingDate || ""),
+          grn_date: formatDate(header?.PostingDate || ""),
           grn_year:
             header?.MaterialDocumentYear || item.MaterialDocumentYear || "",
-            Batch_QTY: item.QuantityInBaseUnit || "",
-            // grn_Qty :grnQtyMap || "N/A",
-            
-            grn_Qty: grnQtyMap[grnKey],
+          Batch_QTY: item.QuantityInBaseUnit || "",
+          // grn_Qty :grnQtyMap || " ",
 
-         
+          grn_Qty: grnQtyMap[grnKey],
 
           grn: {
             purchaseOrder: item.PurchaseOrder || "",
@@ -724,19 +766,29 @@ console.log(
             postingDate: formatDate(header?.PostingDate || ""),
             entryDate: formatDate(header?.EntryDate || item.EntryDate || ""),
           },
-            MaterialBaseUnit: item.MaterialBaseUnit,
-            manufaturer_no: poItemData.YY1_ManufacturerNO1_PDI || "N/A",
-           YY1_AA16_MMI : item.YY1_AA16_MMI || "N/A",
-            YY1_AA1_MMI: item.YY1_AA1_MMI || "N/A",
-           YY1_AA2_MMI : item.YY1_AA2_MMI || "N/A",
-           YY1_AA16_MMIT : item.YY1_AA16_MMIT || "N/A",
-          manufaturer_no: manfNo || "N/A",
+          PersonFullName: businessUser.PersonFullName || " ",
+          MaterialBaseUnit: item.MaterialBaseUnit,
+          manufaturer_no: poItemData.YY1_ManufacturerNO1_PDI || " ",
+          YY1_AA16_MMI: item.YY1_AA16_MMI || " ",
+          YY1_AA1_MMI: item.YY1_AA1_MMI || " ",
+          YY1_AA2_MMI: item.YY1_AA2_MMI || " ",
+          YY1_AA16_MMIT: item.YY1_AA16_MMIT || " ",
+          manufaturer_no: manfNo || " ",
           MaterialDocumentItem: item.MaterialDocumentItem || " ",
 
-ManfNm: manfData.ManfNm || "",
-ManfAddr: manfData.ManfAddr || "", 
-ManfStat: manfData.ManfStat || "",
-     grn_item_count: grnItemCountMap[grnKey] || 0,
+          ManfNm: manfData.ManfNm || "",
+          ManfAddr: manfData.ManfAddr || "",
+          ManfStat: manfData.ManfStat || "",
+          grn_item_count: grnItemCountMap[grnKey] || 0,
+
+          container:
+            item.MaterialDocumentItem && grnItemCountMap[grnKey]
+              ? `${item.MaterialDocumentItem}/${grnItemCountMap[grnKey]}`
+              : item.MaterialDocumentItem || grnItemCountMap[grnKey] || "",
+          dec: item.YY1_AA16_MMIT?.trim()
+  ? `(${item.YY1_AA16_MMIT.trim()})`
+  : "",
+
 
         };
       });
@@ -758,7 +810,7 @@ ManfStat: manfData.ManfStat || "",
     } catch (err) {
       return req.error(
         500,
-        `Failed to fetch Material Document details: ${err.message}`
+        `Failed to fetch Material Document details: ${err.message}`,
       );
     }
   });
