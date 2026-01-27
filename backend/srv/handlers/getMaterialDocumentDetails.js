@@ -733,10 +733,12 @@ module.exports = (srv) => {
           grn_date: formatDate(header?.PostingDate || ""),
           grn_year:
             header?.MaterialDocumentYear || item.MaterialDocumentYear || "",
-          Batch_QTY: item.QuantityInBaseUnit || "",
+         Batch_QTY: Number(Number(item.QuantityInBaseUnit || 0).toFixed(2)),
+
+
           // grn_Qty :grnQtyMap || " ",
 
-          grn_Qty: grnQtyMap[grnKey],
+          grn_Qty: (grnQtyMap[grnKey] || 0).toFixed(2),
 
           grn: {
             purchaseOrder: item.PurchaseOrder || "",
@@ -786,10 +788,8 @@ module.exports = (srv) => {
               ? `${item.MaterialDocumentItem}/${grnItemCountMap[grnKey]}`
               : item.MaterialDocumentItem || grnItemCountMap[grnKey] || "",
           dec: item.YY1_AA16_MMIT?.trim()
-  ? `(${item.YY1_AA16_MMIT.trim()})`
-  : "",
-
-
+            ? `(${item.YY1_AA16_MMIT.trim()})`
+            : "",
         };
       });
       const overallMs = Date.now() - overallStart;

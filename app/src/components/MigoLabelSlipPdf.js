@@ -308,6 +308,7 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
            
               </View>
               <View style={styles.signCol}>
+                 <Text style={styles.value1}> </Text>
                 <Text style={styles.signText}>Checked By</Text>
               </View>
             </View>
