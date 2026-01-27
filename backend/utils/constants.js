@@ -17,14 +17,14 @@ switch (process.env.DEPLOYMENT_ENV) {
 
   case "PRODUCTION":
   default:
-    auth_username = "ENGINEERING_PROD";
-    auth_password = "g-eKKCVqBTUBXKXFNvAqTqMXocHtqHoXl2VylrqW";
+    auth_username = "BAS_USER";
+    auth_password = `6a(8S~df6JZ=hYDB)KgtZ(ShWc4-7+j<QCp2W8(}`;
     baseURL = "https://my430774-api.s4hana.cloud.sap";
     break;
 }
 
 const auth = Buffer.from(`${auth_username}:${auth_password}`).toString(
-  "base64"
+  "base64",
 );
 
 module.exports = {
