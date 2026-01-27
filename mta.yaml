@@ -1,7 +1,7 @@
 _schema-version: "3.3"
-ID: kopran-qtr-label-qa
+ID: kopran-qtr-label-prod
 version: 1.0.0
-description: "CAP + React Fullstack App - Quality Environment"
+description: "CAP + React Fullstack App - Production Environment"
 
 parameters:
   enable-parallel-deployments: true
@@ -36,7 +36,7 @@ modules:
     requires:
       - name: destination-backend
       - name: html5-apps-repo-runtime
-      - name: xsuaa-kopran-qtr-label-quality
+      - name: xsuaa-kopran-qtr-label-prod
 
   - name: frontend
     type: html5
@@ -62,7 +62,7 @@ modules:
             - build/**
           name: frontend
 
-  - name: kopran-qtr-label-qa-approuter
+  - name: kopran-qtr-label-prod-approuter
     type: nodejs
     path: approuter
     parameters:
@@ -70,7 +70,7 @@ modules:
       disk-quota: 512M
       keep-existing-routes: true
       env:
-        TENANT_HOST_PATTERN: "^(.*)--meritpolymerssubdomain1-quality-approuter.cfapps.eu10-005.hana.ondemand.com"
+        TENANT_HOST_PATTERN: "^(.*)--meritpolymerssubdomain1-prod-approuter.cfapps.eu10-005.hana.ondemand.com"
     requires:
       - name: html5-apps-repo-runtime
         properties:
@@ -79,7 +79,7 @@ modules:
           forwardAuthToken: true
       - name: html5-apps-repo-host
       - name: destination-backend
-      - name: xsuaa-kopran-qtr-label-quality
+      - name: xsuaa-kopran-qtr-label-prod
       - name: srv-api-inv
         group: destinations
         properties:
@@ -106,16 +106,15 @@ resources:
       service: html5-apps-repo
       service-plan: app-host
 
-  # Optional security service
-  - name: xsuaa-kopran-qtr-label-quality
+  - name: xsuaa-kopran-qtr-label-prod
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "kopran-qtr-label-quality-auth"
+        xsappname: "kopran-qtr-label-prod-auth"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://kopran-qtr-label-qa-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+            - "https://kopran-qtr-label-prod-approuter.cfapps.eu10-005.hana.ondemand.com/**"
