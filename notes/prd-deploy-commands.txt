@@ -26,4 +26,4 @@ cd ..
 mbt build -t mta_archives
 
 # ☁️ Step 7: Deploy MTAR
-cf deploy mta_archives/invoicing-capm_1.0.0.mtar -f
+cf deploy mta_archives/kopran-qtr-label-prod_1.0.0.mtar -f
