@@ -1,7 +1,7 @@
 _schema-version: "3.3"
-ID: kopran-qtr-label-dev
+ID: kopran-qtr-label-qa
 version: 1.0.0
-description: "CAP + React Fullstack App"
+description: "CAP + React Fullstack App - Quality Environment"
 
 parameters:
   enable-parallel-deployments: true
@@ -22,8 +22,8 @@ modules:
       buildpack: nodejs_buildpack
       memory: 512M
       env:
-        API_USER: "BAS_USER"
-        API_PASS: "2y9Xib2zi{qvEbe3Cwd35SdF+UByL5TD~E>oN7Bx"
+        API_USER: "mbk@meritpolymers.com"
+        API_PASS: "Mitesh@2024"
     build-parameters:
       builder: custom
       commands:
@@ -36,7 +36,7 @@ modules:
     requires:
       - name: destination-backend
       - name: html5-apps-repo-runtime
-      - name: xsuaa-kopran-qtr-label-dev
+      - name: xsuaa-kopran-qtr-label-quality
 
   - name: frontend
     type: html5
@@ -62,15 +62,15 @@ modules:
             - build/**
           name: frontend
 
-  - name: kopran-qtr-label-dev-approuter
+  - name: kopran-qtr-label-qa-approuter
     type: nodejs
     path: approuter
     parameters:
       memory: 256M
       disk-quota: 512M
       keep-existing-routes: true
-      # env:
-      #   TENANT_HOST_PATTERN: "^(.*)--meritpolymerssubdomain1-dev-approuter.cfapps.eu10-005.hana.ondemand.com"
+      env:
+        TENANT_HOST_PATTERN: "^(.*)--meritpolymerssubdomain1-quality-approuter.cfapps.eu10-005.hana.ondemand.com"
     requires:
       - name: html5-apps-repo-runtime
         properties:
@@ -79,7 +79,7 @@ modules:
           forwardAuthToken: true
       - name: html5-apps-repo-host
       - name: destination-backend
-      - name: xsuaa-kopran-qtr-label-dev
+      - name: xsuaa-kopran-qtr-label-quality
       - name: srv-api-inv
         group: destinations
         properties:
@@ -107,15 +107,15 @@ resources:
       service-plan: app-host
 
   # Optional security service
-  - name: xsuaa-kopran-qtr-label-dev
+  - name: xsuaa-kopran-qtr-label-quality
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "kopran-qtr-label-dev-auth"
+        xsappname: "kopran-qtr-label-quality-auth"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://kopran-qtr-label-dev-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+            - "https://kopran-qtr-label-qa-approuter.cfapps.eu10-005.hana.ondemand.com/**"
