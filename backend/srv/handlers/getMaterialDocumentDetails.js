@@ -733,7 +733,8 @@ module.exports = (srv) => {
           grn_date: formatDate(header?.PostingDate || ""),
           grn_year:
             header?.MaterialDocumentYear || item.MaterialDocumentYear || "",
-         Batch_QTY: Number(Number(item.QuantityInBaseUnit || 0).toFixed(2)),
+     Batch_QTY: Number(item.QuantityInBaseUnit || 0).toFixed(2),
+
 
 
           // grn_Qty :grnQtyMap || " ",

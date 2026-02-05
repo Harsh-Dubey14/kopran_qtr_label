@@ -11,9 +11,15 @@ import {
 /* =========================================================
    CONSTANTS
 ========================================================= */
-const PAGE = 283.46; // 10 cm
-const SAFE_MARGIN = 6;
-const FORMAT_HEIGHT = 14;
+// ===== PRINT-SAFE UNITS (300 DPI) =====
+// 1 cm = 28.346 pt (72 DPI)
+const CM = (cm) => cm * 28.346;
+
+const PAGE = CM(10);        // 283.46 pt  → 10 cm
+const SAFE_MARGIN = CM(0.2);
+const FORMAT_HEIGHT = CM(0.5);
+    // ~5 mm
+
 
 /* =========================================================
    STYLES
@@ -24,20 +30,25 @@ const styles = StyleSheet.create({
     height: PAGE,
     padding: 0, // 🔥 IMPORTANT: NO PAGE PADDING
     backgroundColor: "#fff",
-    fontFamily: "Helvetica",
-    fontSize: 9,
+ fontFamily: "Helvetica-Bold", // 🔥 BEST for PDF
+    fontSize: 8,
     lineHeight: 1.1,
   },
 
   /* FORMAT NO ABOVE BORDER */
-  formatWrapper: {
-    height: FORMAT_HEIGHT,
-    alignItems: "center",
-    justifyContent: "flex-end", // ⬇️ push text down
-    marginBottom: -3, // ⬇️ bring text close to border
-  },
+formatWrapper: {
+  height: FORMAT_HEIGHT,
+  alignItems: "flex-start",
+  justifyContent: "flex-end",
+  marginBottom: -3,
+
+  paddingLeft: 50, // ⬅️ CHANGE ONLY THIS
+},
+
+
   formatText: {
-    fontSize: 7,
+    marginLeft: -20, // ⬅️ shifts text left
+    fontSize: 11,
     fontWeight: "bold",
   },
   /* BORDERED AREA */
@@ -67,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   companyName: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
   },
   companyLocation: {
@@ -104,7 +115,7 @@ const styles = StyleSheet.create({
   },
   value: {
     flex: 1,
-    fontSize: 9,
+    fontSize: 8,
   },
   value1: {
     flex: 1,
@@ -121,7 +132,7 @@ const styles = StyleSheet.create({
   },
   materialValue: {
     flex: 1,
-    fontSize: 9,
+    fontSize: 8,
   },
 
   /* SIGN + FOOTER */
@@ -142,7 +153,7 @@ const styles = StyleSheet.create({
   },
 
   formatText: {
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: "bold",
   },
 
@@ -158,7 +169,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: "#fff",
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: "bold",
     letterSpacing: 1,
   },
@@ -168,14 +179,14 @@ const styles = StyleSheet.create({
    DATA MAP
 ========================================================= */
 const mapItem = (i) => ({
-  materialName: i.materialName || "N/A",
+  materialName: i.materialName || " ",
   dec: i.dec || "",
-  materialCode: i.materialCode || i.Material || "N/A",
-  grn_no: i.grn_no || "N/A",
-  grn_date: i.grn_date || "N/A",
+  materialCode: i.materialCode || i.Material || " ",
+  grn_no: i.grn_no || " ",
+  grn_date: i.grn_date || " ",
   grn_QTY: i.grn_Qty || "",
   baseUnit: i.MaterialBaseUnit || "",
-  batch: i.batchNo || "N/A",
+  batch: i.batchNo || " ",
   batchQty: i.Batch_QTY || "",
   // mdi: i.MaterialDocumentItem,
   // grn: i.grn_item_count,
@@ -198,11 +209,13 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
   return (
     <Document>
       {items.map((m, idx) => (
-        <Page
-          key={idx}
-          size={{ width: PAGE, height: PAGE }}
-          style={styles.page}
-        >
+       <Page
+  key={idx}
+  size={[PAGE, PAGE]}
+  wrap={false}
+  style={styles.page}
+>
+
           {/* FORMAT NO ABOVE BORDER */}
           <View style={styles.formatWrapper}>
             <Text style={styles.formatText}>FORMAT NO : MWH001-F02-18</Text>
@@ -214,7 +227,6 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
 
             {/* HEADER */}
             <View style={styles.header}>
-              <Image src="/kopran_logo.png" style={styles.logo} />
               <View style={styles.companyWrapper}>
                 <Text style={styles.companyName}>
                   KOPRAN RESEARCH LABORATORIES LTD.
@@ -249,14 +261,9 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
               </View>
             </View>
 
-            <View style={styles.halfRow}>
-              <View style={styles.halfCol}>
+            <View style={styles.row}>
                 <Text style={styles.label}>GRN Qty</Text>
-                <Text style={styles.value}>: {m.grn_QTY}</Text>
-              </View>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{m.baseUnit}</Text>
-              </View>
+                <Text style={styles.value}>: {m.grn_QTY} {m.baseUnit}</Text>
             </View>
 
             <View style={styles.row}>
@@ -264,14 +271,9 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
               <Text style={styles.value}>: {m.batch}</Text>
             </View>
 
-            <View style={styles.halfRow}>
-              <View style={styles.halfCol}>
+            <View style={styles.row}>
                 <Text style={styles.label}>Batch Qty</Text>
-                <Text style={styles.value}>: {m.batchQty}</Text>
-              </View>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{m.baseUnit}</Text>
-              </View>
+                <Text style={styles.value}>: {m.batchQty} {m.baseUnit}</Text>
             </View>
 
             <View style={styles.row}>
@@ -303,7 +305,7 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
             {/* SIGN */}
             <View style={styles.signRow}>
               <View style={styles.signCol}>
-                     <Text style={styles.value1}>{m.PersonFullName}</Text>
+                     <Text style={styles.signText}>{m.PersonFullName}</Text>
                 <Text style={styles.signText}>Prepared By</Text>
            
               </View>
