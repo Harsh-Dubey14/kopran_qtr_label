@@ -4,7 +4,6 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from "@react-pdf/renderer";
 
@@ -16,9 +15,10 @@ import {
 const CM = (cm) => cm * 28.346;
 
 const PAGE = CM(10);        // 283.46 pt  → 10 cm
-const SAFE_MARGIN = CM(0.2);
+const SAFE_MARGIN = CM(0.2); // 14.17 pt   → 0.5 cm
 const FORMAT_HEIGHT = CM(0.5);
     // ~5 mm
+const BOTTOM_REDUCE = CM(0.7); // 5 mm from bottom
 
 
 /* =========================================================
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     padding: 0, // 🔥 IMPORTANT: NO PAGE PADDING
     backgroundColor: "#fff",
  fontFamily: "Helvetica-Bold", // 🔥 BEST for PDF
-    fontSize: 8,
+   fontSize: 9,
     lineHeight: 1.1,
   },
 
@@ -40,7 +40,7 @@ formatWrapper: {
   height: FORMAT_HEIGHT,
   alignItems: "flex-start",
   justifyContent: "flex-end",
-  marginBottom: -3,
+  marginBottom: -1,
 
   paddingLeft: 50, // ⬅️ CHANGE ONLY THIS
 },
@@ -48,19 +48,25 @@ formatWrapper: {
 
   formatText: {
     marginLeft: -20, // ⬅️ shifts text left
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "bold",
   },
   /* BORDERED AREA */
-  borderBox: {
-    margin: SAFE_MARGIN,
-    width: PAGE - SAFE_MARGIN * 2,
-    height: PAGE - SAFE_MARGIN * 2 - FORMAT_HEIGHT,
-    borderWidth: 1,
-    borderColor: "#000",
-    padding: 6,
-    position: "relative",
-  },
+borderBox: {
+  marginLeft: SAFE_MARGIN + 15,
+  marginRight: SAFE_MARGIN , // ⬅️ extra right margin
+  marginBottom: SAFE_MARGIN,
+  height:
+    PAGE -
+    SAFE_MARGIN * 2 -
+    FORMAT_HEIGHT -
+    BOTTOM_REDUCE, // ⬅️ THIS reduces bottom
+
+  borderWidth: 1,
+  borderColor: "#000",
+  padding: 6,
+  position: "relative",
+},
 
   /* HEADER */
   header: {
@@ -78,11 +84,11 @@ formatWrapper: {
     alignItems: "center",
   },
   companyName: {
-    fontSize: 8,
+   fontSize: 10,
     fontWeight: "bold",
   },
   companyLocation: {
-    fontSize: 8,
+    fontSize: 10,
   },
 
   separator: {
@@ -110,29 +116,36 @@ formatWrapper: {
   },
   label: {
     width: 55,
-    fontSize: 8,
+   fontSize: 9,
+    fontWeight: "bold",
+  },
+   label1: {
+    // width: 65,
+   fontSize: 9,
     fontWeight: "bold",
   },
   value: {
     flex: 1,
-    fontSize: 8,
+   fontSize: 9,
   },
-  value1: {
-    flex: 1,
-    fontSize: 8,
-  },
+valueWide: {
+  flex: 1,            // take remaining space
+  marginLeft: 6,      // ⬅️ breathing space after label
+  fontSize: 8,
+},
+
   materialRow: {
     flexDirection: "row",
     marginBottom: 4,
   },
   materialLabel: {
     width: 55,
-    fontSize: 8,
+   fontSize: 9,
     fontWeight: "bold",
   },
   materialValue: {
     flex: 1,
-    fontSize: 8,
+   fontSize: 9,
   },
 
   /* SIGN + FOOTER */
@@ -148,12 +161,12 @@ formatWrapper: {
     alignItems: "center",
   },
   signText: {
-    fontSize: 8,
+   fontSize: 9,
     fontWeight: "bold",
   },
 
   formatText: {
-    fontSize: 8,
+   fontSize: 9,
     fontWeight: "bold",
   },
 
@@ -256,8 +269,8 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
                 <Text style={styles.value}>: {m.grn_no}</Text>
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>GRN Dt</Text>
-                <Text style={styles.value}>: {m.grn_date}</Text>
+                <Text style={styles.label1}>GRN Dt : {m.grn_date}</Text>
+                {/* <Text style={styles.value}></Text> */}
               </View>
             </View>
 
@@ -287,8 +300,8 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
                 <Text style={styles.value}>: {m.mfgDate}</Text>
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>Exp./Retest Dt</Text>
-                <Text style={styles.value}>: {m.expDate}</Text>
+                <Text style={styles.label1}>Exp./Retest Dt : {m.expDate}</Text>
+                {/* <Text style={styles.value}>: {m.expDate}</Text> */}
               </View>
             </View>
 
@@ -310,7 +323,7 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
            
               </View>
               <View style={styles.signCol}>
-                 <Text style={styles.value1}> </Text>
+                 <Text style={styles.value}> </Text>
                 <Text style={styles.signText}>Checked By</Text>
               </View>
             </View>
