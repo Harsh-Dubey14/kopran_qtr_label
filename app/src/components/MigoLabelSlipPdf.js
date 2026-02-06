@@ -120,7 +120,7 @@ borderBox: {
     fontWeight: "bold",
   },
    label1: {
-    width: 65,
+    // width: 65,
    fontSize: 9,
     fontWeight: "bold",
   },
@@ -269,8 +269,8 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
                 <Text style={styles.value}>: {m.grn_no}</Text>
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label1}>GRN Dt</Text>
-                <Text style={styles.value}>: {m.grn_date}</Text>
+                <Text style={styles.label1}>GRN Dt : {m.grn_date}</Text>
+                {/* <Text style={styles.value}></Text> */}
               </View>
             </View>
 
@@ -300,8 +300,8 @@ const MigoLabelSlipPdf = ({ data = [] }) => {
                 <Text style={styles.value}>: {m.mfgDate}</Text>
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label1}>Exp./Retest Dt</Text>
-                <Text style={styles.value}>: {m.expDate}</Text>
+                <Text style={styles.label1}>Exp./Retest Dt : {m.expDate}</Text>
+                {/* <Text style={styles.value}>: {m.expDate}</Text> */}
               </View>
             </View>
 
