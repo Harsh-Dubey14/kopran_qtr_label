@@ -62,7 +62,7 @@ modules:
             - build/**
           name: frontend
 
-  - name: kopran-qtr-label-dev-approuter
+  - name: approuter
     type: nodejs
     path: approuter
     parameters:
@@ -118,4 +118,4 @@ resources:
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://kopran-qtr-label-dev-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+            - "https://indore-composite-p--ltd--quality-approuter.cfapps.eu10-005.hana.ondemand.com/index.html"
