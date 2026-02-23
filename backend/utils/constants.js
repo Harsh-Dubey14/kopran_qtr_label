@@ -9,10 +9,10 @@ switch (process.env.DEPLOYMENT_ENV) {
     baseURL = "https://my430774-api.s4hana.cloud.sap";
     break;
 
-  case "QUALITY":
-    auth_username = "ENGINEERING_PROD";
-    auth_password = "7U6frD$)+B>mc)D{>>pgK2-5)yMENT+xBWe3Lp~K";
-    baseURL = "https://my431480-api.s4hana.cloud.sap";
+    case "QUALITY":
+    auth_username = "BAS_USER";
+    auth_password = "eK2(BRaS6Nyqc5cccJ8SUQ-==%d$uVZEHFSjy)GG";
+    baseURL = "https://my431480.s4hana.cloud.sap/";
     break;
 
   case "PRODUCTION":
