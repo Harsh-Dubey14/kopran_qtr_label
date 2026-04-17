@@ -1,5 +1,5 @@
 _schema-version: "3.3"
-ID: kopran-qtr-label-dev
+ID: kopran-qtr-label-prod
 version: 1.0.0
 description: "CAP + React Fullstack App"
 
@@ -15,30 +15,30 @@ build-parameters:
         - npx --prefix backend cds build --production
 
 modules:
-  - name: backend-srv-inv
+  - name: qtr-label-backend-srv-prd
     type: nodejs
     path: backend
     parameters:
       buildpack: nodejs_buildpack
-      memory: 512M
+      memory: 256M
       env:
-        API_USER: "BAS_USER"
-        API_PASS: "2y9Xib2zi{qvEbe3Cwd35SdF+UByL5TD~E>oN7Bx"
+        API_USER: "rakeshdoshi@kopran.com"
+        API_PASS: "Keepgrowing@25"
     build-parameters:
       builder: custom
       commands:
         - npm install --omit=dev
         - cds build --production
     provides:
-      - name: srv-api-inv
+      - name: qtr-label-srv-api-prd
         properties:
           srv-url: ${default-url}
     requires:
-      - name: destination-backend
-      - name: html5-apps-repo-runtime
-      - name: xsuaa-kopran-qtr-label-dev
+      - name: qtr-label-destination-prd
+      - name: qtr-label-html5-runtime-prd
+      - name: xsuaa-kopran-qtr-label-prod
 
-  - name: frontend
+  - name: qtr-label-frontend-prd
     type: html5
     path: app/build
     build-parameters:
@@ -48,74 +48,73 @@ modules:
         - npm run build
       supported-platforms: []
     requires:
-      - name: html5-apps-repo-host
+      - name: qtr-label-html5-host-prd
 
-  - name: frontend-deployer
+  - name: qtr-label-frontend-deployer-prd
     type: com.sap.application.content
     path: app/frontend-deployer
     requires:
-      - name: html5-apps-repo-host
+      - name: qtr-label-html5-host-prd
     build-parameters:
       build-result: resources
       requires:
         - artifacts:
             - build/**
-          name: frontend
+          name: qtr-label-frontend-prd
 
-  - name: approuter
+  - name: qtr-label-approuter-prd
     type: nodejs
     path: approuter
     parameters:
       memory: 256M
       disk-quota: 512M
       keep-existing-routes: true
-      # env:
-      #   TENANT_HOST_PATTERN: "^(.*)--meritpolymerssubdomain1-dev-approuter.cfapps.eu10-005.hana.ondemand.com"
+      env:
+        TENANT_HOST_PATTERN: "^(.*)--kopran-ltd-subaccount-t506bu9i-qtr-label-approuter-prd.cfapps.eu10-005.hana.ondemand.com"
     requires:
-      - name: html5-apps-repo-runtime
+      - name: qtr-label-html5-runtime-prd
         properties:
-          name: html5-apps-repo-runtime
+          name: qtr-label-html5-runtime-prd
           url: https://html5-apps-repo.cfapps.eu10.hana.ondemand.com
           forwardAuthToken: true
-      - name: html5-apps-repo-host
-      - name: destination-backend
-      - name: xsuaa-kopran-qtr-label-dev
-      - name: srv-api-inv
+      - name: qtr-label-html5-host-prd
+      - name: qtr-label-destination-prd
+      - name: xsuaa-kopran-qtr-label-prod
+      - name: qtr-label-srv-api-prd
         group: destinations
         properties:
-          name: srv-api-inv
+          name: qtr-label-srv-api-prd
           url: ~{srv-url}
           forwardAuthToken: true
 
 resources:
-  - name: destination-backend
+  - name: qtr-label-destination-prd
     type: org.cloudfoundry.managed-service
     parameters:
       service: destination
       service-plan: lite
 
-  - name: html5-apps-repo-runtime
+  - name: qtr-label-html5-runtime-prd
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
       service-plan: app-runtime
 
-  - name: html5-apps-repo-host
+  - name: qtr-label-html5-host-prd
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
       service-plan: app-host
 
-  # Optional security service
-  - name: xsuaa-kopran-qtr-label-dev
+  - name: xsuaa-kopran-qtr-label-prod
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       config-path: ./xs-security.json
       config:
-        xsappname: "kopran-qtr-label-dev-auth"
+        xsappname: "kopran-qtr-label-prod-app"
         tenant-mode: shared
         oauth2-configuration:
           redirect-uris:
-            - "https://invoicing-capm-dev-approuter.cfapps.eu10-005.hana.ondemand.com/**"
+            - "https://kopran-ltd--kopran-ltd-subaccount-t506bu9i-qtr-label-approuter-prd.cfapps.eu10-005.hana.ondemand.com/**"
