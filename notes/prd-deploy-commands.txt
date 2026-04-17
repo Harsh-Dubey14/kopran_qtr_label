@@ -1,4 +1,4 @@
-cf target -o "Merit_Polymers Pvt Ltd._MeritPolymersSubdomain1" -s PRODUCTION
+cf target -o "Kopran Ltd_kopran-ltd-subaccount-t506bu9i" -s PRD
 
 4. change # 🛡️ Step 5: Apply quality-specific configurations according to env and then copy paste the below in terminal 
 
@@ -19,7 +19,7 @@ cd ..
 
 # 🛡️ Step 5: Apply quality-specific configurations
 
- cp xs-security-prod.json xs-security.json
+ cp xs-security-production.json xs-security.json
  cp approuter/xs-app-production.json approuter/xs-app.json
 
 # 🏗️ Step 6: Rebuild MTA
