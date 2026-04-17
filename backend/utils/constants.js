@@ -18,7 +18,7 @@ switch (process.env.DEPLOYMENT_ENV) {
   case "PRODUCTION":
   default:
     auth_username = "BAS_USER";
-    auth_password = `6a(8S~df6JZ=hYDB)KgtZ(ShWc4-7+j<QCp2W8(}`;
+    auth_password = `j8QJRTJH]2s=SAF%qH)#q9%QRR-f=/MEplB>4@in`;
     baseURL = "https://my433016-api.s4hana.cloud.sap";
     break;
 }
