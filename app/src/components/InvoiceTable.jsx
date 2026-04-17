@@ -23,6 +23,8 @@ import {
   useBreakpointValue,
   useToast,
   Select,
+  Spinner,
+Center,
 } from "@chakra-ui/react";
 import {
   Eye,
@@ -45,6 +47,7 @@ export default function InvoiceTable({
   onPrint = () => {},
 }) {
   const toast = useToast();
+  const [loading, setLoading] = React.useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
   const [compactMode, setCompactMode] = React.useState(false);
   const [sortBy, setSortBy] = React.useState("MaterialDocument");
@@ -105,9 +108,13 @@ export default function InvoiceTable({
   const allSelected =
     selectedIDs.length > 0 && selectedIDs.length === allRowIDs.length;
 
-      const generatePdfBlob = async (docs) => {
+const generatePdfBlob = async (docs) => {
+  setLoading(true);
+
   const res = await getMaterialDocumentDetails(docs);
+
   if (res?.res !== "success") {
+    setLoading(false);
     throw new Error(res?.message || "Failed to generate PDF");
   }
 
@@ -150,9 +157,18 @@ const handlePreview = async (docs) => {
     if (!docs?.length) return;
 
     const blob = await generatePdfBlob(docs);
+
     const url = URL.createObjectURL(blob);
+
     window.open(url, "_blank");
+
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
   } catch (err) {
+    setLoading(false);
+
     toast({
       title: "Preview error",
       description: err?.message || String(err),
@@ -168,14 +184,22 @@ const handleDownload = async (docs) => {
     const blob = await generatePdfBlob(docs);
 
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
     a.download = `MaterialDocuments_${docs.join("_")}.pdf`;
+
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
     URL.revokeObjectURL(url);
+
+    setLoading(false);
+
   } catch (err) {
+    setLoading(false);
+
     toast({
       title: "Download error",
       description: err?.message || String(err),
@@ -237,7 +261,20 @@ const handleDownload = async (docs) => {
 
   const clearSelection = () => onSelect([]);
 
-
+if (loading) {
+  return (
+    <Center h="300px" flexDirection="column">
+      <Spinner
+        thickness="4px"
+        speed="0.65s"
+        emptyColor="gray.200"
+        color="blue.500"
+        size="xl"
+      />
+      <Text mt={4}>Loading records & opening PDF...</Text>
+    </Center>
+  );
+}
   return (
     <Box
       borderRadius="md"

@@ -49,10 +49,10 @@ import axios from "axios";
 import { keyframes } from "@emotion/react";
 import QRCode from "qrcode";
 
-import ExportInvoicePDFViewReplicaV2 from "../components/ExportInvoicePDFViewReplicaV2";
-import DomesticExportInvoicePdfViewV1 from "../components/DomesticExportInvoicePdfViewV1";
+
+
 import { useColorMode } from "@chakra-ui/react";
-import TaxInvoicePdfViewV2 from "../components/TaxInvoicePdfViewV2";
+
 
 const pulseRotate = keyframes`
   0% { transform: scale(0.9) rotate(0deg); opacity: 0.6; }
@@ -364,7 +364,7 @@ export default function Dashboard() {
         if (isTaxType) {
           // tax invoice flow (both templates are domestic/tax)
           if (templateChoice === "v1") {
-            // v1 -> TaxInvoicePdfViewV2
+            // v1 ->  
             if (!invoiceData?.generateTaxInvoiceData) {
               toast({
                 title: "Payload missing for chosen template",
@@ -377,7 +377,6 @@ export default function Dashboard() {
             }
             blob =
               (await renderPdfToBlob(
-                TaxInvoicePdfViewV2,
                 invoiceData?.generateTaxInvoiceData ||
                   invoiceData?.generateExportInvoiceData
               )) || null;
@@ -395,20 +394,18 @@ export default function Dashboard() {
             }
             blob =
               (await renderPdfToBlob(
-                DomesticExportInvoicePdfViewV1,
                 invoiceData?.generateTaxInvoiceData ||
                   invoiceData?.generateExportInvoiceData
               )) || null;
           } else {
-            // auto: prefer TaxInvoicePdfViewV2 if tax payload exists, else fallback
+            // auto: prefer   if tax payload exists, else fallback
             if (invoiceData?.generateTaxInvoiceData) {
               blob = await renderPdfToBlob(
-                TaxInvoicePdfViewV2,
+        
                 invoiceData.generateTaxInvoiceData
               );
             } else if (invoiceData?.generateExportInvoiceData) {
               blob = await renderPdfToBlob(
-                DomesticExportInvoicePdfViewV1,
                 invoiceData.generateExportInvoiceData
               );
             } else {
@@ -435,7 +432,6 @@ export default function Dashboard() {
             return { blob: null, metaTitle };
           }
           blob = await renderPdfToBlob(
-            ExportInvoicePDFViewReplicaV2,
             invoiceData.generateExportInvoiceData
           );
         }
