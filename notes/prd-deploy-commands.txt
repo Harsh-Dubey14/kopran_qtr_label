@@ -23,6 +23,7 @@ cd ..
  cp approuter/xs-app-production.json approuter/xs-app.json
 
 # 🏗️ Step 6: Rebuild MTA
+
 mbt build -t mta_archives
 
 # ☁️ Step 7: Deploy MTAR

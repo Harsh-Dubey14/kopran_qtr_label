@@ -1,9 +1,9 @@
 _schema-version: "3.3"
 ID: kopran-qtr-label-prod
 version: 1.0.0
-description: "CAP + React Fullstack App - Production Environment"
+description: "CAP + React Fullstack App"
 
-parameters: 
+parameters:
   enable-parallel-deployments: true
 
 build-parameters:
@@ -20,9 +20,9 @@ modules:
     path: backend
     parameters:
       buildpack: nodejs_buildpack
-      memory: 256M
+      memory: 350M
       env:
-      API_USER: "rakeshdoshi@kopran.com"
+        API_USER: "rakeshdoshi@kopran.com"
         API_PASS: "Keepgrowing@25"
     build-parameters:
       builder: custom
@@ -66,8 +66,8 @@ modules:
     type: nodejs
     path: approuter
     parameters:
-      memory: 256M
-      disk-quota: 512M
+      memory: 300M
+      disk-quota: 650M
       keep-existing-routes: true
       env:
         TENANT_HOST_PATTERN: "^(.*)--kopran-ltd-subaccount-t506bu9i-qtr-label-approuter-prd.cfapps.eu10-005.hana.ondemand.com"
@@ -77,7 +77,7 @@ modules:
           name: qtr-label-html5-runtime-prd
           url: https://html5-apps-repo.cfapps.eu10.hana.ondemand.com
           forwardAuthToken: true
-    - name: qtr-label-html5-host-prd
+      - name: qtr-label-html5-host-prd
       - name: qtr-label-destination-prd
       - name: xsuaa-kopran-qtr-label-prod
       - name: qtr-label-srv-api-prd
